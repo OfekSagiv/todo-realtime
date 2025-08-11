@@ -1,7 +1,12 @@
 const repo = require('../repositories/task.repository');
-const { AppError } = require('../errors/AppError');
-const { StatusCodes } = require('http-status-codes');
-const { ERROR_CODES, ERROR_MESSAGES } = require('../constants/error');
+const {AppError} = require('../errors/AppError');
+const {StatusCodes} = require('http-status-codes');
+const {ERROR_CODES, ERROR_MESSAGES} = require('../constants/error');
+const {
+    publishTaskCreated,
+    publishTaskUpdated,
+    publishTaskDeleted,
+} = require('../publish/task.events');
 
 async function getAllTasksService() {
     return repo.findAllTasks();
@@ -20,8 +25,10 @@ async function getTaskByIdService(id) {
 }
 
 async function createTaskService(validatedInput) {
-    const { title } = validatedInput;
-    return repo.createTaskDocument({ title });
+    const {title} = validatedInput;
+    const created = await repo.createTaskDocument({title});
+    publishTaskCreated(created);
+    return created;
 }
 
 async function updateTaskService(id, validatedInput) {
@@ -33,6 +40,7 @@ async function updateTaskService(id, validatedInput) {
             ERROR_CODES.TASK_NOT_FOUND
         );
     }
+    publishTaskUpdated(updated);
     return updated;
 }
 
@@ -45,7 +53,9 @@ async function deleteTaskService(id) {
             ERROR_CODES.TASK_NOT_FOUND
         );
     }
-    return { id: deleted._id.toString() };
+    const deletedId = deleted._id.toString();
+    publishTaskDeleted(deletedId);
+    return {id: deletedId};
 }
 
 module.exports = {
