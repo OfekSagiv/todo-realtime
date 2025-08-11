@@ -5,7 +5,7 @@ const morgan = require('morgan');
 
 const app = express();
 
-app.use(cors({ origin: process.env.CLIENT_ORIGIN || '*' }));
+app.use(cors({ origin: process.env.CLIENT_ORIGIN }));
 app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json());
