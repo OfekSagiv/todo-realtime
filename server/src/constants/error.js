@@ -22,7 +22,7 @@ const ERROR_MESSAGES = {
     TASK_NOT_FOUND: 'Task not found',
     TASK_TITLE_REQUIRED: 'Task title is required',
     TASK_TITLE_EMPTY: 'Task title cannot be empty',
-    TASK_UPDATE_EMPTY: 'At least one',
+    TASK_UPDATE_EMPTY: 'At least one field is required for update',
 };
 
 module.exports = {
