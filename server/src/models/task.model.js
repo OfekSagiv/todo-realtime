@@ -1,4 +1,5 @@
 const { Schema, model } = require('mongoose');
+const { MODEL_NAMES, COLLECTION_NAMES } = require('../constants/models');
 
 const TaskSchema = new Schema(
     {
@@ -8,4 +9,4 @@ const TaskSchema = new Schema(
     { timestamps: true }
 );
 
-module.exports = model('Task', TaskSchema);
+module.exports = model(MODEL_NAMES.TASK, TaskSchema, COLLECTION_NAMES.TASKS);

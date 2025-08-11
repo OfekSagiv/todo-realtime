@@ -1,7 +1,11 @@
 const { StatusCodes } = require('http-status-codes');
+const { ERROR_CODES, ERROR_MESSAGES } = require('../constants/error');
 
 module.exports = (req, res, _next) => {
     res.status(StatusCodes.NOT_FOUND).json({
-        error: { code: 'NOT_FOUND', message: `Route ${req.method} ${req.originalUrl} not found` },
+        error: {
+            code: ERROR_CODES.NOT_FOUND,
+            message: `${ERROR_MESSAGES.NOT_FOUND} (${req.method} ${req.originalUrl})`,
+        },
     });
 };

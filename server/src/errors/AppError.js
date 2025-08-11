@@ -1,8 +1,14 @@
+const {
+    DEFAULT_ERROR_STATUS,
+    DEFAULT_ERROR_MESSAGE,
+    DEFAULT_ERROR_CODE,
+} = require('../constants/error');
+
 class AppError extends Error {
     constructor(
-        status = 500,
-        message = 'Internal Server Error',
-        code = 'INTERNAL_ERROR',
+        status = DEFAULT_ERROR_STATUS,
+        message = DEFAULT_ERROR_MESSAGE,
+        code = DEFAULT_ERROR_CODE,
         details = null
     ) {
         super(message);
