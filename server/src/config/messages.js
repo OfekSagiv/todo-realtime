@@ -9,4 +9,5 @@ module.exports = {
     HTTP_SERVER_ERROR: 'HTTP server error:',
     STARTUP_ERROR: 'Startup error:',
     ENV_ORIGIN_INVALID: 'CLIENT_ORIGIN cannot be "*" for security reasons',
+    DATABASE_CONNECTION_FAILED: 'Database connection failed',
 };
