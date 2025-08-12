@@ -1,12 +1,19 @@
+const {v4: uuidv4} = require('uuid');
 const locksByTask = new Map();
 const tasksBySocket = new Map();
 
 function acquire(taskId, socketId) {
     const current = locksByTask.get(taskId);
-    if (current && current !== socketId) {
-        return { ok: false, reason: 'ALREADY_LOCKED', owner: current };
+    if (current && current.ownerSocketId !== socketId) {
+        return {ok: false, reason: 'ALREADY_LOCKED', owner: current.ownerSocketId};
     }
-    locksByTask.set(taskId, socketId);
+    if (!current) {
+        const token = uuidv4();
+        const ts = Date.now();
+        locksByTask.set(taskId, {ownerSocketId: socketId, token, ts});
+    } else {
+        locksByTask.set(taskId, current);
+    }
 
     let set = tasksBySocket.get(socketId);
     if (!set) {
@@ -15,21 +22,24 @@ function acquire(taskId, socketId) {
     }
     set.add(taskId);
 
-    return { ok: true, lock: { taskId, owner: socketId } };
+    const final = locksByTask.get(taskId);
+    return { ok: true, lock: { taskId, owner: final.ownerSocketId, token: final.token } };
 }
 
-function release(taskId, socketId) {
+function release(taskId, socketId, token) {
     const current = locksByTask.get(taskId);
-    if (!current) return { ok: false, reason: 'INVALID_TASK' };
-    if (current !== socketId) return { ok: false, reason: 'NOT_OWNER' };
+     if (!current) return { ok: false, reason: 'INVALID_TASK' };
+     const isOwner = current.ownerSocketId === socketId;
+     const tokenMatch = token && current.token === token;
+     if (!isOwner && !tokenMatch) return { ok: false, reason: 'NOT_OWNER' };
 
     locksByTask.delete(taskId);
-    const set = tasksBySocket.get(socketId);
+    const set = tasksBySocket.get(current.ownerSocketId);
     if (set) {
         set.delete(taskId);
-        if (set.size === 0) tasksBySocket.delete(socketId);
+        if (set.size === 0) tasksBySocket.delete(current.ownerSocketId);
     }
-    return { ok: true, taskId };
+    return {ok: true, taskId};
 }
 
 function releaseAllBySocket(socketId) {
@@ -43,4 +53,12 @@ function releaseAllBySocket(socketId) {
     return released;
 }
 
-module.exports = { acquire, release, releaseAllBySocket };
+ function getLock(taskId) {
+       return locksByTask.get(taskId) || null;
+     }
+
+ function isLocked(taskId) {
+       return locksByTask.has(taskId);
+     }
+
+module.exports = {acquire, release, releaseAllBySocket , getLock, isLocked};

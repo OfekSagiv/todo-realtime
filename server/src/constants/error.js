@@ -10,6 +10,7 @@ const ERROR_CODES = {
     INTERNAL_ERROR: DEFAULT_ERROR_CODE,
     NOT_FOUND: 'NOT_FOUND',
     TASK_NOT_FOUND: 'TASK_NOT_FOUND',
+    LOCKED: 'LOCKED',
 };
 
 const ERROR_MESSAGES = {
@@ -23,6 +24,7 @@ const ERROR_MESSAGES = {
     TASK_TITLE_REQUIRED: 'Task title is required',
     TASK_TITLE_EMPTY: 'Task title cannot be empty',
     TASK_UPDATE_EMPTY: 'At least one field is required for update',
+    TASK_LOCKED: 'Task is locked by another editor',
 };
 
 module.exports = {
