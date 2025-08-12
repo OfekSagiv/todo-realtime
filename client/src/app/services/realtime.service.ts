@@ -54,10 +54,8 @@ export class RealtimeService implements OnDestroy {
     this.taskLocked$   = fromEvent<{ taskId: string; owner: string }>(this.socket, 'task:locked').pipe(share());
     this.taskUnlocked$ = fromEvent<{ taskId: string }>(this.socket, 'task:unlocked').pipe(share());
 
-    this.connected$.pipe(takeUntil(this.destroyed$))
-      .subscribe(() => console.log('[WS] connected', this.socket.id));
-    this.disconnected$.pipe(takeUntil(this.destroyed$))
-      .subscribe(() => console.log('[WS] disconnected'));
+    this.connected$.pipe(takeUntil(this.destroyed$)).subscribe();
+    this.disconnected$.pipe(takeUntil(this.destroyed$)).subscribe();
   }
 
   getSocketId(): string | undefined {
