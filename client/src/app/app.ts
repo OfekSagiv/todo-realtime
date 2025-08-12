@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 @Component({
@@ -8,13 +8,6 @@ import { RouterOutlet } from '@angular/router';
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
-export class App implements OnInit {
+export class App {
   protected readonly title = signal('client');
-
-  ngOnInit() {
-    fetch('http://localhost:3000/health')
-      .then(res => res.json())
-      .then(data => console.log('CORS check:', data))
-      .catch(err => console.error('CORS error:', err));
-  }
 }
