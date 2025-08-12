@@ -3,6 +3,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const apiRouter = require('./routes/api.router');
 const morgan = require('morgan');
+const { expressCorsOptions } = require('./config/cors');
 const notFound = require('./middlewares/notFound');
 const errorHandler = require('./middlewares/errorHandler');
 const {API_BASE} = require("./constants/routes");
@@ -10,7 +11,7 @@ const {API_BASE} = require("./constants/routes");
 
 const app = express();
 
-app.use(cors({ origin: process.env.CLIENT_ORIGIN }));
+app.use(cors(expressCorsOptions));
 app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json());
