@@ -101,14 +101,13 @@ export class TaskStore implements OnDestroy {
       const token = this.locks.get(taskId)?.token;
       const res = await this.rt.releaseLock(taskId, token);
 
-      // Success if: explicit ok=true OR HTTP status 200/204 OR idempotent 404/409 (“already released”).
       const ok =
         typeof res === 'object' && res !== null
           ? (
             (('ok' in (res as any)) && Boolean((res as any).ok)) ||
             (('status' in (res as any)) && [200, 204, 404, 409].includes(Number((res as any).status)))
           )
-          : false; // No explicit signal ⇒ keep local lock
+          : false;
 
       if (ok) {
         this.clearLock(taskId);
@@ -116,7 +115,6 @@ export class TaskStore implements OnDestroy {
         console.error(`[TaskStore] Server refused to release lock for task ${taskId}; keeping local lock.`);
       }
     } catch (error) {
-      // Do NOT clear locally on failure to avoid divergence.
       console.error(`[TaskStore] Failed to release lock for task ${taskId}; keeping local lock.`, error);
     }
   }
