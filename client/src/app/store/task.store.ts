@@ -86,7 +86,7 @@ export class TaskStore implements OnDestroy {
   async acquireLock(taskId: string): Promise<LockAcquireAck | null> {
     try {
       const ack = await this.rt.acquireLock(taskId);
-      if (ack.ok && ack.lock) {
+      if (ack?.ok && ack.lock) {
         this.setLock(taskId, { owner: ack.lock.owner, token: ack.lock.token });
       }
       return ack;
@@ -99,10 +99,25 @@ export class TaskStore implements OnDestroy {
   async releaseLock(taskId: string): Promise<void> {
     try {
       const token = this.locks.get(taskId)?.token;
-      await this.rt.releaseLock(taskId, token);
-      this.clearLock(taskId);
+      const res = await this.rt.releaseLock(taskId, token);
+
+      // Success if: explicit ok=true OR HTTP status 200/204 OR idempotent 404/409 (“already released”).
+      const ok =
+        typeof res === 'object' && res !== null
+          ? (
+            (('ok' in (res as any)) && Boolean((res as any).ok)) ||
+            (('status' in (res as any)) && [200, 204, 404, 409].includes(Number((res as any).status)))
+          )
+          : false; // No explicit signal ⇒ keep local lock
+
+      if (ok) {
+        this.clearLock(taskId);
+      } else {
+        console.error(`[TaskStore] Server refused to release lock for task ${taskId}; keeping local lock.`);
+      }
     } catch (error) {
-      console.error(`[TaskStore] Failed to release lock for task ${taskId}:`, error);
+      // Do NOT clear locally on failure to avoid divergence.
+      console.error(`[TaskStore] Failed to release lock for task ${taskId}; keeping local lock.`, error);
     }
   }
 
@@ -112,6 +127,11 @@ export class TaskStore implements OnDestroy {
 
   isLocked(taskId: string): boolean {
     return this.locks.has(taskId);
+  }
+
+  isLockedByMe(taskId: string): boolean {
+    const lock = this.locks.get(taskId);
+    return !!lock && lock.owner === this.mySocketId();
   }
 
   mySocketId(): string | undefined {
