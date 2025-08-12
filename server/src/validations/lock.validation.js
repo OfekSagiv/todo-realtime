@@ -6,8 +6,8 @@ const lockAcquireSchema = z.object({
 });
 
 const lockReleaseSchema = z.object({
-       taskId: z.string().min(1, ERROR_MESSAGES.TASK_ID_REQUIRED),
-       token: z.uuid().optional(),
-    });
+    taskId: z.string().min(1, ERROR_MESSAGES.TASK_ID_REQUIRED),
+    token: z.uuid().optional(),
+});
 
 module.exports = {lockAcquireSchema, lockReleaseSchema};

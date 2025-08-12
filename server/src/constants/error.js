@@ -29,7 +29,7 @@ const ERROR_MESSAGES = {
     INVALID_TASK: 'Invalid task',
     NOT_OWNER: 'You are not the owner of this task',
     SOCKET_NOT_INITIALIZED: 'Socket.IO not initialized',
-    CORS_ERROR:'Not allowed by CORS'
+    CORS_ERROR: 'Not allowed by CORS'
 };
 
 module.exports = {

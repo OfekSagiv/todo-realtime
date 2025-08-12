@@ -24,15 +24,15 @@ function acquire(taskId, socketId) {
     set.add(taskId);
 
     const final = locksByTask.get(taskId);
-    return { ok: true, lock: { taskId, owner: final.ownerSocketId, token: final.token } };
+    return {ok: true, lock: {taskId, owner: final.ownerSocketId, token: final.token}};
 }
 
 function release(taskId, socketId, token) {
     const current = locksByTask.get(taskId);
-     if (!current) return { ok: false, reason: ERROR_MESSAGES.INVALID_TASK };
-     const isOwner = current.ownerSocketId === socketId;
-     const tokenMatch = token && current.token === token;
-     if (!isOwner && !tokenMatch) return { ok: false, reason: ERROR_MESSAGES.NOT_OWNER };
+    if (!current) return {ok: false, reason: ERROR_MESSAGES.INVALID_TASK};
+    const isOwner = current.ownerSocketId === socketId;
+    const tokenMatch = token && current.token === token;
+    if (!isOwner && !tokenMatch) return {ok: false, reason: ERROR_MESSAGES.NOT_OWNER};
 
     locksByTask.delete(taskId);
     const set = tasksBySocket.get(current.ownerSocketId);
@@ -54,12 +54,12 @@ function releaseAllBySocket(socketId) {
     return released;
 }
 
- function getLock(taskId) {
-       return locksByTask.get(taskId) || null;
-     }
+function getLock(taskId) {
+    return locksByTask.get(taskId) || null;
+}
 
- function isLocked(taskId) {
-       return locksByTask.has(taskId);
-     }
+function isLocked(taskId) {
+    return locksByTask.has(taskId);
+}
 
-module.exports = {acquire, release, releaseAllBySocket , getLock, isLocked};
+module.exports = {acquire, release, releaseAllBySocket, getLock, isLocked};
