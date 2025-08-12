@@ -1,6 +1,6 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
-import { fromEvent, Observable, Subject, map, share, takeUntil } from 'rxjs';
+import { fromEvent, Observable, Subject, map, share } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 export type TaskDto = {
@@ -29,7 +29,7 @@ export class RealtimeService implements OnDestroy {
   private socket: Socket;
   private destroyed$ = new Subject<void>();
 
-  readonly connected$: Observable<boolean>;
+  readonly connected$:    Observable<boolean>;
   readonly disconnected$: Observable<void>;
 
   readonly taskCreated$:  Observable<TaskDto>;
@@ -37,6 +37,8 @@ export class RealtimeService implements OnDestroy {
   readonly taskDeleted$:  Observable<{ id: string }>;
   readonly taskLocked$:   Observable<{ taskId: string; owner: string }>;
   readonly taskUnlocked$: Observable<{ taskId: string }>;
+
+  private static readonly ACK_TIMEOUT_MS = 5000;
 
   constructor() {
     this.socket = io(environment.wsUrl, {
@@ -53,25 +55,35 @@ export class RealtimeService implements OnDestroy {
     this.taskDeleted$  = fromEvent<{ id: string }>(this.socket, 'task:deleted').pipe(share());
     this.taskLocked$   = fromEvent<{ taskId: string; owner: string }>(this.socket, 'task:locked').pipe(share());
     this.taskUnlocked$ = fromEvent<{ taskId: string }>(this.socket, 'task:unlocked').pipe(share());
-
-    this.connected$.pipe(takeUntil(this.destroyed$)).subscribe();
-    this.disconnected$.pipe(takeUntil(this.destroyed$)).subscribe();
   }
 
   getSocketId(): string | undefined {
     return this.socket?.id;
   }
 
-  acquireLock(taskId: string): Promise<LockAcquireAck> {
-    return new Promise((resolve) => {
-      this.socket.emit('lock:acquire', { taskId }, (ack: LockAcquireAck) => resolve(ack));
+  private emitWithAck<TAck extends { ok?: boolean; reason?: string }>(
+    event: string,
+    payload: any,
+    timeoutMs = RealtimeService.ACK_TIMEOUT_MS
+  ): Promise<TAck> {
+    return new Promise<TAck>((resolve, reject) => {
+      const to = setTimeout(() => reject(new Error(`Ack timeout for "${event}"`)), timeoutMs);
+      this.socket.emit(event, payload, (ack: TAck) => {
+        clearTimeout(to);
+        if (typeof ack?.ok === 'boolean' && !ack.ok) {
+          return reject(new Error(ack.reason || `Ack returned ok=false for "${event}"`));
+        }
+        resolve(ack);
+      });
     });
   }
 
+  acquireLock(taskId: string): Promise<LockAcquireAck> {
+    return this.emitWithAck<LockAcquireAck>('lock:acquire', { taskId });
+  }
+
   releaseLock(taskId: string, token?: string): Promise<LockReleaseAck> {
-    return new Promise((resolve) => {
-      this.socket.emit('lock:release', { taskId, token }, (ack: LockReleaseAck) => resolve(ack));
-    });
+    return this.emitWithAck<LockReleaseAck>('lock:release', { taskId, token });
   }
 
   ngOnDestroy(): void {
