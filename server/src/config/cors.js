@@ -1,4 +1,6 @@
 const { ENV_VARS } = require('./envVars');
+const {ERROR_MESSAGES} = require("../constants/error");
+const {HTTP_METHODS} = require("../constants/httpMethods");
 
 function parseOrigins(raw) {
     return (raw || '')
@@ -12,14 +14,14 @@ const allowedOrigins = parseOrigins(process.env[ENV_VARS.CLIENT_ORIGIN]);
 const expressCorsOptions = {
     origin(origin, cb) {
         if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
-        return cb(new Error('Not allowed by CORS'));
+        return cb(new Error(ERROR_MESSAGES.CORS_ERROR));
     },
     credentials: true,
 };
 
 const socketCorsOptions = {
     origin: allowedOrigins.length ? allowedOrigins : undefined,
-    methods: ['GET','POST','PUT','DELETE'],
+    methods: HTTP_METHODS,
     credentials: true,
 };
 
