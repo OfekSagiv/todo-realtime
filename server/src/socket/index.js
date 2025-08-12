@@ -1,19 +1,21 @@
 const { Server } = require('socket.io');
 const { socketCorsOptions } = require('../config/cors');
 const { registerLockHandlers } = require('./handlers/lock.handlers');
+const {ERROR_MESSAGES} = require("../constants/error");
+const {WS_DISCONNECTED, WS_CONNECTED, SOCKET_CONNECT, SOCKET_DISCONNECT} = require("../constants/socketEvents");
 
 let io;
 
 function initSocket(httpServer) {
     io = new Server(httpServer, { cors: socketCorsOptions });
 
-    io.on('connection', (socket) => {
-        console.log('WS connected:', socket.id);
+    io.on(SOCKET_CONNECT, (socket) => {
+        console.log(WS_CONNECTED, socket.id);
 
         registerLockHandlers(io, socket);
 
-        socket.on('disconnect', () => {
-            console.log('WS disconnected:', socket.id);
+        socket.on(SOCKET_DISCONNECT, () => {
+            console.log(WS_DISCONNECTED, socket.id);
         });
     });
 
@@ -21,7 +23,7 @@ function initSocket(httpServer) {
 }
 
 function getIO() {
-    if (!io) throw new Error('Socket.IO not initialized');
+    if (!io) throw new Error(ERROR_MESSAGES.SOCKET_NOT_INITIALIZED);
     return io;
 }
 

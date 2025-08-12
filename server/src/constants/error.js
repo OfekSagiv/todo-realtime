@@ -22,9 +22,13 @@ const ERROR_MESSAGES = {
     NOT_FOUND: 'Route not found',
     TASK_NOT_FOUND: 'Task not found',
     TASK_TITLE_REQUIRED: 'Task title is required',
+    TASK_ID_REQUIRED: 'Task ID is required',
     TASK_TITLE_EMPTY: 'Task title cannot be empty',
     TASK_UPDATE_EMPTY: 'At least one field is required for update',
     TASK_LOCKED: 'Task is locked by another editor',
+    INVALID_TASK: 'Invalid task',
+    NOT_OWNER: 'You are not the owner of this task',
+    SOCKET_NOT_INITIALIZED: 'Socket.IO not initialized',
 };
 
 module.exports = {

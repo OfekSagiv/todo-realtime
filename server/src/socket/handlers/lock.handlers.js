@@ -3,6 +3,7 @@ const {REASONS, LOCK_OK} = require('../../constants/lock');
 const {lockAcquireSchema, lockReleaseSchema} = require('../../validations/lock.validation');
 const LockManager = require('../../locks/taskLockManager');
 const {taskRoom} = require('../../constants/socketRooms');
+const {SOCKET_DISCONNECT} = require("../../constants/socketEvents");
 
 function safeAck(ack) {
     return typeof ack === 'function' ? ack : () => {
@@ -37,7 +38,7 @@ function registerLockHandlers(io, socket) {
             return ack({ok: false, reason: REASONS.BAD_PAYLOAD});
         }
     });
-    socket.on('disconnect', () => {
+    socket.on(SOCKET_DISCONNECT, () => {
         const released = LockManager.releaseAllBySocket(socket.id);
         for (const taskId of released) {
             io.to(taskRoom(taskId)).emit(EVENTS.TASK_UNLOCKED, {taskId});

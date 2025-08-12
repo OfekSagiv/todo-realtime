@@ -7,4 +7,11 @@ module.exports = {
 
     LOCK_ACQUIRE:  'lock:acquire',
     LOCK_RELEASE:  'lock:release',
+
+    WS_DISCONNECTED: 'ws:disconnected',
+    WS_CONNECTED: 'ws:connected',
+
+    SOCKET_CONNECT: 'connection',
+    SOCKET_DISCONNECT: 'disconnect',
+
 };
