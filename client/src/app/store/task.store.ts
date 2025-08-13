@@ -3,6 +3,8 @@ import { BehaviorSubject, Subject, firstValueFrom } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { TaskHttpService, Task, CreateTaskDto, UpdateTaskDto } from '../services/task-http.service';
 import { RealtimeService, LockAcquireAck } from '../services/realtime.service';
+import { UiService } from '../services/ui.service';
+import { HttpErrorResponse } from '@angular/common/http';
 
 type LockInfo = { owner: string; token?: string };
 
@@ -16,15 +18,16 @@ export class TaskStore implements OnDestroy {
 
   constructor(
     private http: TaskHttpService,
-    private rt: RealtimeService
+    private rt: RealtimeService,
+    private ui: UiService
   ) {
     this.rt.taskCreated$
       .pipe(takeUntil(this.destroyed$))
-      .subscribe((task) => this.upsertTask(task));
+      .subscribe(task => this.upsertTask(task));
 
     this.rt.taskUpdated$
       .pipe(takeUntil(this.destroyed$))
-      .subscribe((task) => this.upsertTask(task));
+      .subscribe(task => this.upsertTask(task));
 
     this.rt.taskDeleted$
       .pipe(takeUntil(this.destroyed$))
@@ -37,6 +40,10 @@ export class TaskStore implements OnDestroy {
     this.rt.taskUnlocked$
       .pipe(takeUntil(this.destroyed$))
       .subscribe(({ taskId }) => this.clearLock(taskId));
+
+    this.rt.disconnected$
+      .pipe(takeUntil(this.destroyed$))
+      .subscribe(() => this.clearAllLocksLocal());
   }
 
   async loadAll(): Promise<void> {
@@ -66,6 +73,10 @@ export class TaskStore implements OnDestroy {
       this.upsertTask(updated);
       return updated;
     } catch (error) {
+      if (error instanceof HttpErrorResponse && error.status === 423) {
+        this.ui.error('Task is locked by another editor');
+        return null;
+      }
       console.error(`[TaskStore] Failed to update task ${id}:`, error);
       return null;
     }
@@ -78,6 +89,10 @@ export class TaskStore implements OnDestroy {
       this.removeLocal(id);
       return res;
     } catch (error) {
+      if (error instanceof HttpErrorResponse && error.status === 423) {
+        this.ui.error('Task is locked by another editor');
+        return null;
+      }
       console.error(`[TaskStore] Failed to delete task ${id}:`, error);
       return null;
     }
@@ -100,15 +115,11 @@ export class TaskStore implements OnDestroy {
     try {
       const token = this.locks.get(taskId)?.token;
       const res = await this.rt.releaseLock(taskId, token);
-
       const ok =
-        typeof res === 'object' && res !== null
-          ? (
-            (('ok' in (res as any)) && Boolean((res as any).ok)) ||
-            (('status' in (res as any)) && [200, 204, 404, 409].includes(Number((res as any).status)))
-          )
-          : false;
-
+        typeof res === 'object' &&
+        res !== null &&
+        (('ok' in (res as any) && Boolean((res as any).ok)) ||
+          ('status' in (res as any) && [200, 204, 404, 409].includes(Number((res as any).status))));
       if (ok) {
         this.clearLock(taskId);
       } else {
@@ -136,17 +147,21 @@ export class TaskStore implements OnDestroy {
     return this.rt.getSocketId();
   }
 
+  clearAllLocksLocal(): void {
+    this.locks.clear();
+  }
+
   ngOnDestroy(): void {
     this.destroyed$.next();
     this.destroyed$.complete();
   }
 
   private upsertTask(task: Task): void {
-    const copy = [...this._tasks$.value];
-    const idx = copy.findIndex(t => t.id === task.id);
-    if (idx === -1) copy.unshift(task);
-    else copy[idx] = task;
-    this._tasks$.next(copy);
+    const list = this._tasks$.value.slice();
+    const idx = list.findIndex(t => t.id === task.id);
+    if (idx === -1) list.unshift(task);
+    else list[idx] = task;
+    this._tasks$.next(list);
   }
 
   private removeLocal(id: string): void {
