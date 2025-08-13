@@ -1,6 +1,6 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
-import { fromEvent, Observable, Subject, map, share } from 'rxjs';
+import { fromEvent, Observable, Subject, map, share, filter } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 export type TaskDto = {
@@ -22,6 +22,27 @@ export interface LockReleaseAck {
   ok: boolean;
   message?: string;
   reason?: string;
+}
+
+interface RawTask {
+  id?: string;
+  _id?: string;
+  title?: string;
+  completed?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+function toTaskOrNull(raw: RawTask): TaskDto | null {
+  const id = raw?.id ?? raw?._id;
+  if (!id) return null;
+  return {
+    id,
+    title: raw?.title ?? '',
+    completed: Boolean(raw?.completed),
+    createdAt: raw?.createdAt ?? '',
+    updatedAt: raw?.updatedAt ?? '',
+  };
 }
 
 @Injectable({ providedIn: 'root' })
@@ -50,8 +71,18 @@ export class RealtimeService implements OnDestroy {
     this.connected$    = fromEvent(this.socket, 'connect').pipe(map(() => true), share());
     this.disconnected$ = fromEvent(this.socket, 'disconnect').pipe(share());
 
-    this.taskCreated$  = fromEvent<TaskDto>(this.socket, 'task:created').pipe(share());
-    this.taskUpdated$  = fromEvent<TaskDto>(this.socket, 'task:updated').pipe(share());
+    this.taskCreated$ = fromEvent<RawTask>(this.socket, 'task:created').pipe(
+        map(toTaskOrNull),
+        filter((t): t is TaskDto => t !== null),
+        share()
+    );
+
+    this.taskUpdated$ = fromEvent<RawTask>(this.socket, 'task:updated').pipe(
+        map(toTaskOrNull),
+        filter((t): t is TaskDto => t !== null),
+        share()
+    );
+
     this.taskDeleted$  = fromEvent<{ id: string }>(this.socket, 'task:deleted').pipe(share());
     this.taskLocked$   = fromEvent<{ taskId: string; owner: string }>(this.socket, 'task:locked').pipe(share());
     this.taskUnlocked$ = fromEvent<{ taskId: string }>(this.socket, 'task:unlocked').pipe(share());
@@ -62,9 +93,9 @@ export class RealtimeService implements OnDestroy {
   }
 
   private emitWithAck<TAck extends { ok?: boolean; reason?: string }>(
-    event: string,
-    payload: any,
-    timeoutMs = RealtimeService.ACK_TIMEOUT_MS
+      event: string,
+      payload: any,
+      timeoutMs = RealtimeService.ACK_TIMEOUT_MS
   ): Promise<TAck> {
     return new Promise<TAck>((resolve, reject) => {
       const to = setTimeout(() => reject(new Error(`Ack timeout for "${event}"`)), timeoutMs);
