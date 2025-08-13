@@ -1,7 +1,8 @@
-import { Component, OnDestroy } from '@angular/core';
+import { Component, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { UiService, UiToast } from '../../services/ui.service';
 import { Subscription, timer } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-toast',
@@ -18,21 +19,18 @@ import { Subscription, timer } from 'rxjs';
     .toast.error { background:#b00020; }
   `]
 })
-export class ToastComponent implements OnDestroy {
+export class ToastComponent {
   current: UiToast | null = null;
-  private sub?: Subscription;
   private killer?: Subscription;
+  private readonly destroyRef = inject(DestroyRef);
 
   constructor(ui: UiService) {
-    this.sub = ui.toasts$.subscribe(t => {
-      this.current = t;
-      this.killer?.unsubscribe();
-      this.killer = timer(t.ttlMs ?? 3500).subscribe(() => this.current = null);
-    });
-  }
-
-  ngOnDestroy(): void {
-    this.sub?.unsubscribe();
-    this.killer?.unsubscribe();
+    ui.toasts$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(t => {
+        this.current = t;
+        this.killer?.unsubscribe();
+        this.killer = timer(t.ttlMs ?? 3500).subscribe(() => this.current = null);
+      });
   }
 }

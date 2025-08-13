@@ -2,7 +2,7 @@ import {Component, OnInit, signal, DestroyRef, inject} from '@angular/core';
 import {CommonModule} from '@angular/common';
 import {ReactiveFormsModule, FormBuilder, FormGroup, Validators} from '@angular/forms';
 import {TaskStore} from '../store/task.store';
-import {Task} from '../services/task-http.service';
+import {Task} from '../types/task.types';
 import {Observable} from 'rxjs';
 import {RealtimeService} from '../services/realtime.service';
 import {UiService} from '../services/ui.service';
@@ -20,6 +20,11 @@ export class TasksPageComponent implements OnInit {
     createForm!: FormGroup;
     editingId = signal<string | null>(null);
     editForm!: FormGroup;
+
+
+    isCreating = signal(false);
+    isUpdating = signal(false);
+    loadingTaskId = signal<string | null>(null);
 
     tasks$!: Observable<Task[]>;
 
@@ -62,20 +67,26 @@ export class TasksPageComponent implements OnInit {
         return this.store.mySocketId();
     }
 
-    async create() {
-        if (this.createForm.invalid) return;
-        const title = String(this.createForm.value.title).trim();
-        if (!title) return;
-        await this.store.create({title});
-        this.resetCreateForm();
-    }
-
-    isLocked(task: Task) {
+    isLocked(task: Task): boolean {
         return this.store.isLocked(task.id);
     }
 
-    isLockedByMe(task: Task) {
+    isLockedByMe(task: Task): boolean {
         return this.store.isLockedByMe(task.id);
+    }
+
+    async create() {
+        if (this.createForm.invalid || this.isCreating()) return;
+        const title = String(this.createForm.value.title).trim();
+        if (!title) return;
+
+        this.isCreating.set(true);
+        try {
+            await this.store.create({title});
+            this.resetCreateForm();
+        } finally {
+            this.isCreating.set(false);
+        }
     }
 
     async startEdit(task: Task) {
@@ -83,12 +94,18 @@ export class TasksPageComponent implements OnInit {
             this.ui.error('Task is locked by another editor');
             return;
         }
-        const ack = await this.store.acquireLock(task.id);
-        if (ack && ack.ok) {
-            this.editingId.set(task.id);
-            this.editForm.setValue({title: task.title ?? ''});
-        } else {
-            this.ui.error('Task is locked by another editor');
+
+        this.loadingTaskId.set(task.id);
+        try {
+            const ack = await this.store.acquireLock(task.id);
+            if (ack && ack.ok) {
+                this.editingId.set(task.id);
+                this.editForm.setValue({title: task.title ?? ''});
+            } else {
+                this.ui.error('Task is locked by another editor');
+            }
+        } finally {
+            this.loadingTaskId.set(null);
         }
     }
 
@@ -101,12 +118,18 @@ export class TasksPageComponent implements OnInit {
     }
 
     async saveEdit(task: Task) {
-        if (this.editingId() !== task.id || this.editForm.invalid) return;
+        if (this.editingId() !== task.id || this.editForm.invalid || this.isUpdating()) return;
         const title = String(this.editForm.value.title).trim();
-        await this.store.update(task.id, {title});
-        await this.store.releaseLock(task.id);
-        this.editingId.set(null);
-        this.resetEditForm();
+
+        this.isUpdating.set(true);
+        try {
+            await this.store.update(task.id, {title});
+            await this.store.releaseLock(task.id);
+            this.editingId.set(null);
+            this.resetEditForm();
+        } finally {
+            this.isUpdating.set(false);
+        }
     }
 
     async remove(task: Task) {

@@ -1,10 +1,12 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, Subject, firstValueFrom } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { TaskHttpService, Task, CreateTaskDto, UpdateTaskDto } from '../services/task-http.service';
+import { Task, CreateTaskDto, UpdateTaskDto } from '../types/task.types';
+import { TaskHttpService } from '../services/task-http.service';
 import { RealtimeService, LockAcquireAck } from '../services/realtime.service';
 import { UiService } from '../services/ui.service';
 import { HttpErrorResponse } from '@angular/common/http';
+import { TaskOperationError } from '../types/errors';
 
 type LockInfo = { owner: string; token?: string };
 
@@ -59,9 +61,12 @@ export class TaskStore implements OnDestroy {
     try {
       const created = await firstValueFrom(this.http.create(dto));
       this.upsertTask(created);
+      this.ui.info('Task created successfully');
       return created;
     } catch (error) {
-      console.error('[TaskStore] Failed to create task:', error);
+      const taskError = new TaskOperationError('create', null, error);
+      console.error('[TaskStore]', taskError);
+      this.ui.error('Failed to create task. Please try again.');
       return null;
     }
   }
@@ -71,13 +76,27 @@ export class TaskStore implements OnDestroy {
       const token = this.locks.get(id)?.token;
       const updated = await firstValueFrom(this.http.update(id, dto, token));
       this.upsertTask(updated);
+      this.ui.info('Task updated successfully');
       return updated;
     } catch (error) {
-      if (error instanceof HttpErrorResponse && error.status === 423) {
-        this.ui.error('Task is locked by another editor');
-        return null;
+      if (error instanceof HttpErrorResponse) {
+        switch (error.status) {
+          case 423:
+            this.ui.error('Task is locked by another editor');
+            return null;
+          case 404:
+            this.ui.error('Task not found');
+            this.removeLocal(id);
+            return null;
+          case 422:
+            this.ui.error('Invalid task data provided');
+            return null;
+        }
       }
-      console.error(`[TaskStore] Failed to update task ${id}:`, error);
+
+      const taskError = new TaskOperationError('update', id, error);
+      console.error('[TaskStore]', taskError);
+      this.ui.error('Failed to update task. Please try again.');
       return null;
     }
   }
@@ -128,10 +147,6 @@ export class TaskStore implements OnDestroy {
     } catch (error) {
       console.error(`[TaskStore] Failed to release lock for task ${taskId}; keeping local lock.`, error);
     }
-  }
-
-  getLock(taskId: string): LockInfo | undefined {
-    return this.locks.get(taskId);
   }
 
   isLocked(taskId: string): boolean {

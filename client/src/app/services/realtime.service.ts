@@ -2,14 +2,7 @@ import { Injectable, OnDestroy } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
 import { fromEvent, Observable, Subject, map, share, filter } from 'rxjs';
 import { environment } from '../../environments/environment';
-
-export type TaskDto = {
-  id: string;
-  title: string;
-  completed: boolean;
-  createdAt: string;
-  updatedAt: string;
-};
+import { Task, TaskEventPayload} from '../types/task.types';
 
 export interface LockAcquireAck {
   ok: boolean;
@@ -24,16 +17,7 @@ export interface LockReleaseAck {
   reason?: string;
 }
 
-interface RawTask {
-  id?: string;
-  _id?: string;
-  title?: string;
-  completed?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-function toTaskOrNull(raw: RawTask): TaskDto | null {
+function toTaskOrNull(raw: TaskEventPayload): Task | null {
   const id = raw?.id ?? raw?._id;
   if (!id) return null;
   return {
@@ -53,8 +37,8 @@ export class RealtimeService implements OnDestroy {
   readonly connected$:    Observable<boolean>;
   readonly disconnected$: Observable<void>;
 
-  readonly taskCreated$:  Observable<TaskDto>;
-  readonly taskUpdated$:  Observable<TaskDto>;
+  readonly taskCreated$:  Observable<Task>;
+  readonly taskUpdated$:  Observable<Task>;
   readonly taskDeleted$:  Observable<{ id: string }>;
   readonly taskLocked$:   Observable<{ taskId: string; owner: string }>;
   readonly taskUnlocked$: Observable<{ taskId: string }>;
@@ -71,15 +55,15 @@ export class RealtimeService implements OnDestroy {
     this.connected$    = fromEvent(this.socket, 'connect').pipe(map(() => true), share());
     this.disconnected$ = fromEvent(this.socket, 'disconnect').pipe(share());
 
-    this.taskCreated$ = fromEvent<RawTask>(this.socket, 'task:created').pipe(
+    this.taskCreated$ = fromEvent<TaskEventPayload>(this.socket, 'task:created').pipe(
         map(toTaskOrNull),
-        filter((t): t is TaskDto => t !== null),
+        filter((t): t is Task => t !== null),
         share()
     );
 
-    this.taskUpdated$ = fromEvent<RawTask>(this.socket, 'task:updated').pipe(
+    this.taskUpdated$ = fromEvent<TaskEventPayload>(this.socket, 'task:updated').pipe(
         map(toTaskOrNull),
-        filter((t): t is TaskDto => t !== null),
+        filter((t): t is Task => t !== null),
         share()
     );
 
