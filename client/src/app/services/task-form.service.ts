@@ -6,22 +6,10 @@ import { APP_CONSTANTS } from '../constants/app.constants';
   providedIn: 'root'
 })
 export class TaskFormService {
-  private _createForm!: FormGroup;
-  private _editForm!: FormGroup;
+  private readonly _createForm: FormGroup;
+  private readonly _editForm: FormGroup;
 
   constructor(private fb: FormBuilder) {
-    this.initializeForms();
-  }
-
-  get createForm(): FormGroup {
-    return this._createForm;
-  }
-
-  get editForm(): FormGroup {
-    return this._editForm;
-  }
-
-  private initializeForms(): void {
     const validators = [
       Validators.required,
       Validators.minLength(APP_CONSTANTS.VALIDATION.TASK_TITLE_MIN_LENGTH),
@@ -35,6 +23,14 @@ export class TaskFormService {
     this._editForm = this.fb.group({
       title: ['', validators]
     });
+  }
+
+  get createForm(): FormGroup {
+    return this._createForm;
+  }
+
+  get editForm(): FormGroup {
+    return this._editForm;
   }
 
   canCreate(): boolean {

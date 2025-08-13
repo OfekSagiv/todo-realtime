@@ -67,8 +67,12 @@ export class TasksPageComponent implements OnInit {
     get isUpdating() { return this.uiState.isUpdating; }
     get loadingTaskId() { return this.uiState.loadingTaskId; }
 
-    ngOnInit() {
-        this.store.loadAll();
+    async ngOnInit() {
+        try {
+            await this.store.loadAll();
+        } catch (error) {
+            this.ui.error(MESSAGES.ERROR.TASK_LOAD_FAILED);
+        }
         this.setupRealtimeSubscriptions();
     }
 
