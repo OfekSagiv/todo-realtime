@@ -1,6 +1,15 @@
 import {Component, OnInit, signal, DestroyRef, inject} from '@angular/core';
 import {CommonModule} from '@angular/common';
 import {ReactiveFormsModule, FormBuilder, FormGroup, Validators} from '@angular/forms';
+import {MatCardModule} from '@angular/material/card';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatInputModule} from '@angular/material/input';
+import {MatButtonModule} from '@angular/material/button';
+import {MatIconModule} from '@angular/material/icon';
+import {MatChipsModule} from '@angular/material/chips';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
+import {MatDividerModule} from '@angular/material/divider';
+import {MatTooltipModule} from '@angular/material/tooltip';
 import {TaskStore} from '../store/task.store';
 import {Task} from '../types/task.types';
 import {Observable} from 'rxjs';
@@ -14,7 +23,20 @@ import { MESSAGES } from '../constants/messages.constants';
 @Component({
     selector: 'app-tasks-page',
     standalone: true,
-    imports: [CommonModule, ReactiveFormsModule, ToastComponent],
+    imports: [
+        CommonModule,
+        ReactiveFormsModule,
+        ToastComponent,
+        MatCardModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatButtonModule,
+        MatIconModule,
+        MatChipsModule,
+        MatProgressSpinnerModule,
+        MatDividerModule,
+        MatTooltipModule
+    ],
     templateUrl: './tasks-page.component.html',
     styleUrls: ['./tasks-page.component.scss'],
 })
@@ -163,7 +185,12 @@ export class TasksPageComponent implements OnInit {
     }
 
     private resetCreateForm(): void {
-        this.createForm.reset({title: ''}, {emitEvent: false});
+        this.createForm.reset();
+        this.createForm.markAsUntouched();
+        this.createForm.markAsPristine();
+        Object.keys(this.createForm.controls).forEach(key => {
+            this.createForm.get(key)?.setErrors(null);
+        });
     }
 
     private resetEditForm(): void {
