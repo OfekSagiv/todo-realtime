@@ -1,14 +1,14 @@
 export interface AppError {
   code: string;
   message: string;
-  details?: any;
+  details?: unknown;
 }
 
 export class TaskOperationError extends Error {
   constructor(
     public readonly operation: string,
     public readonly taskId: string | null,
-    public readonly originalError: any
+    public readonly originalError: unknown
   ) {
     super(`Task ${operation} failed${taskId ? ` for task ${taskId}` : ''}`);
     this.name = 'TaskOperationError';

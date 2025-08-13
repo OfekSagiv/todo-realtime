@@ -1,14 +1,12 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, Subject, firstValueFrom } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { Task, CreateTaskDto, UpdateTaskDto } from '../types/task.types';
+import { Task, CreateTaskDto, UpdateTaskDto, LockInfo } from '../types/task.types';
 import { TaskHttpService } from '../services/task-http.service';
 import { RealtimeService, LockAcquireAck } from '../services/realtime.service';
 import { UiService } from '../services/ui.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { TaskOperationError } from '../types/errors';
-
-type LockInfo = { owner: string; token?: string };
 
 @Injectable({ providedIn: 'root' })
 export class TaskStore implements OnDestroy {
