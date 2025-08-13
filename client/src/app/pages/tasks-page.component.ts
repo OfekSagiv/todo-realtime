@@ -1,6 +1,6 @@
-import {Component, OnInit, signal, DestroyRef, inject} from '@angular/core';
+import {Component, OnInit, DestroyRef, inject, ChangeDetectionStrategy} from '@angular/core';
 import {CommonModule} from '@angular/common';
-import {ReactiveFormsModule, FormBuilder, FormGroup, Validators} from '@angular/forms';
+import {ReactiveFormsModule} from '@angular/forms';
 import {MatCardModule} from '@angular/material/card';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatInputModule} from '@angular/material/input';
@@ -19,6 +19,8 @@ import {ToastComponent} from '../components/toast/toast.component';
 import {takeUntilDestroyed} from '@angular/core/rxjs-interop';
 import { APP_CONSTANTS } from '../constants/app.constants';
 import { MESSAGES } from '../constants/messages.constants';
+import { TaskFormService } from '../services/task-form.service';
+import { TaskUiStateService } from '../services/task-ui-state.service';
 
 @Component({
     selector: 'app-tasks-page',
@@ -39,66 +41,48 @@ import { MESSAGES } from '../constants/messages.constants';
     ],
     templateUrl: './tasks-page.component.html',
     styleUrls: ['./tasks-page.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class TasksPageComponent implements OnInit {
-    createForm!: FormGroup;
-    editingId = signal<string | null>(null);
-    editForm!: FormGroup;
-
-
-    isCreating = signal(false);
-    isUpdating = signal(false);
-    loadingTaskId = signal<string | null>(null);
-
     tasks$!: Observable<Task[]>;
-
     private readonly destroyRef = inject(DestroyRef);
 
     constructor(
         private store: TaskStore,
-        private fb: FormBuilder,
         private rt: RealtimeService,
-        private ui: UiService
+        private ui: UiService,
+        public formService: TaskFormService,
+        public uiState: TaskUiStateService
     ) {
+        this.tasks$ = this.store.tasks$;
     }
 
     readonly APP_CONSTANTS = APP_CONSTANTS;
     readonly MESSAGES = MESSAGES;
 
-    async ngOnInit() {
-        this.createForm = this.fb.group({
-            title: ['', [
-                Validators.required,
-                Validators.minLength(APP_CONSTANTS.VALIDATION.TASK_TITLE_MIN_LENGTH),
-                Validators.maxLength(APP_CONSTANTS.VALIDATION.TASK_TITLE_MAX_LENGTH)
-            ]],
-        });
+    get createForm() { return this.formService.createForm; }
+    get editForm() { return this.formService.editForm; }
+    get editingId() { return this.uiState.editingId; }
+    get isCreating() { return this.uiState.isCreating; }
+    get isUpdating() { return this.uiState.isUpdating; }
+    get loadingTaskId() { return this.uiState.loadingTaskId; }
 
-        this.editForm = this.fb.group({
-            title: ['', [
-                Validators.required,
-                Validators.minLength(APP_CONSTANTS.VALIDATION.TASK_TITLE_MIN_LENGTH),
-                Validators.maxLength(APP_CONSTANTS.VALIDATION.TASK_TITLE_MAX_LENGTH)
-            ]],
-        });
+    ngOnInit() {
+        this.store.loadAll();
+        this.setupRealtimeSubscriptions();
+    }
 
-        this.tasks$ = this.store.tasks$;
-        await this.store.loadAll();
-
+    private setupRealtimeSubscriptions(): void {
         this.rt.disconnected$
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe(() => {
-                const id = this.editingId();
-                if (id) {
-                    this.editingId.set(null);
-                    this.resetEditForm();
-                }
+                this.cancelEdit();
                 this.store.clearAllLocksLocal();
             });
     }
 
     get myId(): string | undefined {
-        return this.store.mySocketId();
+        return this.rt.getSocketId();
     }
 
     isLocked(task: Task): boolean {
@@ -110,16 +94,15 @@ export class TasksPageComponent implements OnInit {
     }
 
     async create() {
-        if (this.createForm.invalid || this.isCreating()) return;
-        const title = String(this.createForm.value.title).trim();
-        if (!title) return;
+        if (!this.formService.canCreate()) return;
 
-        this.isCreating.set(true);
+        this.uiState.setCreating(true);
         try {
+            const title = this.formService.getCreateTitle();
             await this.store.create({title});
-            this.resetCreateForm();
+            this.formService.resetCreateForm();
         } finally {
-            this.isCreating.set(false);
+            this.uiState.setCreating(false);
         }
     }
 
@@ -129,40 +112,41 @@ export class TasksPageComponent implements OnInit {
             return;
         }
 
-        this.loadingTaskId.set(task.id);
+        this.uiState.setLoadingTask(task.id);
         try {
             const ack = await this.store.acquireLock(task.id);
-            if (ack && ack.ok) {
-                this.editingId.set(task.id);
-                this.editForm.setValue({title: task.title ?? ''});
+            if (ack?.ok) {
+                this.uiState.setEditingTask(task.id);
+                this.formService.setEditValue(task.title);
             } else {
                 this.ui.error(MESSAGES.ERROR.TASK_LOCKED_BY_OTHER);
             }
         } finally {
-            this.loadingTaskId.set(null);
+            this.uiState.clearLoadingTask();
         }
     }
 
     cancelEdit() {
-        const id = this.editingId();
+        const id = this.uiState.editingId();
         if (!id) return;
+
         this.store.releaseLock(id);
-        this.editingId.set(null);
-        this.resetEditForm();
+        this.uiState.clearEditingTask();
+        this.formService.resetEditForm();
     }
 
     async saveEdit(task: Task) {
-        if (this.editingId() !== task.id || this.editForm.invalid || this.isUpdating()) return;
-        const title = String(this.editForm.value.title).trim();
+        if (!this.formService.canEdit(task.id, this.uiState.editingId())) return;
 
-        this.isUpdating.set(true);
+        this.uiState.setUpdating(true);
         try {
+            const title = this.formService.getEditTitle();
             await this.store.update(task.id, {title});
             await this.store.releaseLock(task.id);
-            this.editingId.set(null);
-            this.resetEditForm();
+            this.uiState.clearEditingTask();
+            this.formService.resetEditForm();
         } finally {
-            this.isUpdating.set(false);
+            this.uiState.setUpdating(false);
         }
     }
 
@@ -171,29 +155,15 @@ export class TasksPageComponent implements OnInit {
             this.ui.error(MESSAGES.ERROR.TASK_LOCKED_BY_OTHER);
             return;
         }
+
         const res = await this.store.remove(task.id);
-        if (res) {
-            if (this.editingId() === task.id) {
-                this.editingId.set(null);
-                this.resetEditForm();
-            }
+        if (res && this.uiState.editingId() === task.id) {
+            this.uiState.clearEditingTask();
+            this.formService.resetEditForm();
         }
     }
 
     trackById(_index: number, task: Task): string {
         return task.id;
-    }
-
-    private resetCreateForm(): void {
-        this.createForm.reset();
-        this.createForm.markAsUntouched();
-        this.createForm.markAsPristine();
-        Object.keys(this.createForm.controls).forEach(key => {
-            this.createForm.get(key)?.setErrors(null);
-        });
-    }
-
-    private resetEditForm(): void {
-        this.editForm.reset({title: ''}, {emitEvent: false});
     }
 }
