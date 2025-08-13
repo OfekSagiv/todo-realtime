@@ -1,10 +1,12 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, Subject, firstValueFrom } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { TaskHttpService, Task, CreateTaskDto, UpdateTaskDto } from '../services/task-http.service';
+import { Task, CreateTaskDto, UpdateTaskDto, LockInfo } from '../types/task.types';
+import { TaskHttpService } from '../services/task-http.service';
 import { RealtimeService, LockAcquireAck } from '../services/realtime.service';
-
-type LockInfo = { owner: string; token?: string };
+import { UiService } from '../services/ui.service';
+import { HttpErrorResponse } from '@angular/common/http';
+import { TaskOperationError } from '../types/errors';
 
 @Injectable({ providedIn: 'root' })
 export class TaskStore implements OnDestroy {
@@ -16,15 +18,16 @@ export class TaskStore implements OnDestroy {
 
   constructor(
     private http: TaskHttpService,
-    private rt: RealtimeService
+    private rt: RealtimeService,
+    private ui: UiService
   ) {
     this.rt.taskCreated$
       .pipe(takeUntil(this.destroyed$))
-      .subscribe((task) => this.upsertTask(task));
+      .subscribe(task => this.upsertTask(task));
 
     this.rt.taskUpdated$
       .pipe(takeUntil(this.destroyed$))
-      .subscribe((task) => this.upsertTask(task));
+      .subscribe(task => this.upsertTask(task));
 
     this.rt.taskDeleted$
       .pipe(takeUntil(this.destroyed$))
@@ -37,6 +40,10 @@ export class TaskStore implements OnDestroy {
     this.rt.taskUnlocked$
       .pipe(takeUntil(this.destroyed$))
       .subscribe(({ taskId }) => this.clearLock(taskId));
+
+    this.rt.disconnected$
+      .pipe(takeUntil(this.destroyed$))
+      .subscribe(() => this.clearAllLocksLocal());
   }
 
   async loadAll(): Promise<void> {
@@ -52,9 +59,12 @@ export class TaskStore implements OnDestroy {
     try {
       const created = await firstValueFrom(this.http.create(dto));
       this.upsertTask(created);
+      this.ui.info('Task created successfully');
       return created;
     } catch (error) {
-      console.error('[TaskStore] Failed to create task:', error);
+      const taskError = new TaskOperationError('create', null, error);
+      console.error('[TaskStore]', taskError);
+      this.ui.error('Failed to create task. Please try again.');
       return null;
     }
   }
@@ -64,9 +74,27 @@ export class TaskStore implements OnDestroy {
       const token = this.locks.get(id)?.token;
       const updated = await firstValueFrom(this.http.update(id, dto, token));
       this.upsertTask(updated);
+      this.ui.info('Task updated successfully');
       return updated;
     } catch (error) {
-      console.error(`[TaskStore] Failed to update task ${id}:`, error);
+      if (error instanceof HttpErrorResponse) {
+        switch (error.status) {
+          case 423:
+            this.ui.error('Task is locked by another editor');
+            return null;
+          case 404:
+            this.ui.error('Task not found');
+            this.removeLocal(id);
+            return null;
+          case 422:
+            this.ui.error('Invalid task data provided');
+            return null;
+        }
+      }
+
+      const taskError = new TaskOperationError('update', id, error);
+      console.error('[TaskStore]', taskError);
+      this.ui.error('Failed to update task. Please try again.');
       return null;
     }
   }
@@ -78,6 +106,10 @@ export class TaskStore implements OnDestroy {
       this.removeLocal(id);
       return res;
     } catch (error) {
+      if (error instanceof HttpErrorResponse && error.status === 423) {
+        this.ui.error('Task is locked by another editor');
+        return null;
+      }
       console.error(`[TaskStore] Failed to delete task ${id}:`, error);
       return null;
     }
@@ -100,15 +132,11 @@ export class TaskStore implements OnDestroy {
     try {
       const token = this.locks.get(taskId)?.token;
       const res = await this.rt.releaseLock(taskId, token);
-
       const ok =
-        typeof res === 'object' && res !== null
-          ? (
-            (('ok' in (res as any)) && Boolean((res as any).ok)) ||
-            (('status' in (res as any)) && [200, 204, 404, 409].includes(Number((res as any).status)))
-          )
-          : false;
-
+        typeof res === 'object' &&
+        res !== null &&
+        (('ok' in (res as any) && Boolean((res as any).ok)) ||
+          ('status' in (res as any) && [200, 204, 404, 409].includes(Number((res as any).status))));
       if (ok) {
         this.clearLock(taskId);
       } else {
@@ -117,10 +145,6 @@ export class TaskStore implements OnDestroy {
     } catch (error) {
       console.error(`[TaskStore] Failed to release lock for task ${taskId}; keeping local lock.`, error);
     }
-  }
-
-  getLock(taskId: string): LockInfo | undefined {
-    return this.locks.get(taskId);
   }
 
   isLocked(taskId: string): boolean {
@@ -136,17 +160,21 @@ export class TaskStore implements OnDestroy {
     return this.rt.getSocketId();
   }
 
+  clearAllLocksLocal(): void {
+    this.locks.clear();
+  }
+
   ngOnDestroy(): void {
     this.destroyed$.next();
     this.destroyed$.complete();
   }
 
   private upsertTask(task: Task): void {
-    const copy = [...this._tasks$.value];
-    const idx = copy.findIndex(t => t.id === task.id);
-    if (idx === -1) copy.unshift(task);
-    else copy[idx] = task;
-    this._tasks$.next(copy);
+    const list = this._tasks$.value.slice();
+    const idx = list.findIndex(t => t.id === task.id);
+    if (idx === -1) list.unshift(task);
+    else list[idx] = task;
+    this._tasks$.next(list);
   }
 
   private removeLocal(id: string): void {

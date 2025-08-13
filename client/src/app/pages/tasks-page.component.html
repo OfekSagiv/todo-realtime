@@ -1,46 +1,47 @@
 <div class="page">
-  <h1>Tasks</h1>
+    <app-toast></app-toast>
+    <h1>Tasks</h1>
 
-  <p style="margin: 0 0 12px; font-size:12px; color:#666">
-    Client: <code>{{ myId || 'connecting…' }}</code>
-  </p>
+    <p style="margin: 0 0 12px; font-size:12px; color:#666">
+        Client: <code>{{ myId || 'connecting…' }}</code>
+    </p>
 
-  <form class="create-row" [formGroup]="createForm" (ngSubmit)="create()">
-    <input formControlName="title" placeholder="New task title" />
-    <button type="submit" [disabled]="createForm.invalid">Add</button>
-  </form>
+    <form class="create-row" [formGroup]="createForm" (ngSubmit)="create()">
+        <input formControlName="title" placeholder="New task title"/>
+        <button type="submit" [disabled]="createForm.invalid">Add</button>
+    </form>
 
-  <ul class="list">
-    <li class="item" *ngFor="let t of (tasks$ | async); trackBy: trackById">
-      <div class="row" [class.locked]="isLocked(t) && !isLockedByMe(t)">
-        <div class="title-area">
-          <ng-container *ngIf="editingId() === t.id; else readMode">
-            <form [formGroup]="editForm">
-              <input class="edit-input" formControlName="title" />
-            </form>
-          </ng-container>
-          <ng-template #readMode>
-            <span class="title">{{ t.title }}</span>
-          </ng-template>
+    <ul class="list">
+        <li class="item" *ngFor="let t of (tasks$ | async); trackBy: trackById">
+            <div class="row" [class.locked]="isLocked(t) && !isLockedByMe(t)">
+                <div class="title-area">
+                    <ng-container *ngIf="editingId() === t.id; else readMode">
+                        <form [formGroup]="editForm">
+                            <input class="edit-input" formControlName="title"/>
+                        </form>
+                    </ng-container>
+                    <ng-template #readMode>
+                        <span class="title">{{ t.title }}</span>
+                    </ng-template>
 
-          <span class="badge me" *ngIf="isLockedByMe(t)">You</span>
-          <span class="badge lock" *ngIf="isLocked(t) && !isLockedByMe(t)">Locked</span>
-        </div>
+                    <span class="badge me" *ngIf="isLockedByMe(t)">You</span>
+                    <span class="badge lock" *ngIf="isLocked(t) && !isLockedByMe(t)">Locked</span>
+                </div>
 
-        <div class="actions">
-          <ng-container *ngIf="editingId() === t.id; else normalActions">
-            <button class="primary" (click)="saveEdit(t)" [disabled]="editForm.invalid">Save</button>
-            <button type="button" (click)="cancelEdit()">Cancel</button>
-          </ng-container>
+                <div class="actions">
+                    <ng-container *ngIf="editingId() === t.id; else normalActions">
+                        <button class="primary" (click)="saveEdit(t)" [disabled]="editForm.invalid">Save</button>
+                        <button type="button" (click)="cancelEdit()">Cancel</button>
+                    </ng-container>
 
-          <ng-template #normalActions>
-            <button type="button" (click)="startEdit(t)" [disabled]="isLocked(t) && !isLockedByMe(t)">Edit</button>
-            <button type="button" class="danger" (click)="remove(t)" [disabled]="isLocked(t) && !isLockedByMe(t)">Delete</button>
-          </ng-template>
-        </div>
-      </div>
-    </li>
+                    <ng-template #normalActions>
+                        <button type="button" (click)="startEdit(t)">Edit</button>
+                        <button type="button" class="danger" (click)="remove(t)">Delete</button>
+                    </ng-template>
+                </div>
+            </div>
+        </li>
 
-    <li *ngIf="!(tasks$ | async)?.length" class="empty">No tasks yet.</li>
-  </ul>
+        <li *ngIf="!(tasks$ | async)?.length" class="empty">No tasks yet.</li>
+    </ul>
 </div>

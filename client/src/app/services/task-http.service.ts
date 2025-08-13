@@ -3,32 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-
-type ApiTask = {
-  _id: string;
-  title: string;
-  completed: boolean;
-  createdAt: string;
-  updatedAt: string;
-  __v?: number;
-};
-
-export type Task = {
-  id: string;
-  title: string;
-  completed: boolean;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export interface CreateTaskDto {
-  title: string;
-}
-
-export interface UpdateTaskDto {
-  title?: string;
-  completed?: boolean;
-}
+import { Task, ApiTask, CreateTaskDto, UpdateTaskDto } from '../types/task.types';
 
 function mapTask(t: ApiTask): Task {
   return {
