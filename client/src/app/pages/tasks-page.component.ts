@@ -43,7 +43,7 @@ export class TasksPageComponent implements OnInit {
     const title = String(this.createForm.value.title).trim();
     if (!title) return;
     await this.store.create({ title });
-    this.createForm.reset({ title: '' }, { emitEvent: false });
+    this.resetCreateForm();
   }
 
   isLocked(task: Task) {
@@ -68,7 +68,7 @@ export class TasksPageComponent implements OnInit {
     if (!id) return;
     this.store.releaseLock(id);
     this.editingId.set(null);
-    this.editForm.reset({ title: '' }, { emitEvent: false });
+    this.resetEditForm();
   }
 
   async saveEdit(task: Task) {
@@ -77,7 +77,7 @@ export class TasksPageComponent implements OnInit {
     await this.store.update(task.id, { title });
     await this.store.releaseLock(task.id);
     this.editingId.set(null);
-    this.editForm.reset({ title: '' }, { emitEvent: false });
+    this.resetEditForm();
   }
 
   async remove(task: Task) {
@@ -85,11 +85,19 @@ export class TasksPageComponent implements OnInit {
     await this.store.remove(task.id);
     if (this.editingId() === task.id) {
       this.editingId.set(null);
-      this.editForm.reset({ title: '' }, { emitEvent: false });
+      this.resetEditForm();
     }
   }
 
   trackById(_index: number, task: Task): string {
     return task.id;
+  }
+
+  private resetCreateForm(): void {
+    this.createForm.reset({ title: '' }, { emitEvent: false });
+  }
+
+  private resetEditForm(): void {
+    this.editForm.reset({ title: '' }, { emitEvent: false });
   }
 }
