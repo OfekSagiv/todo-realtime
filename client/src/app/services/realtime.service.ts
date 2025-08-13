@@ -3,6 +3,7 @@ import { io, Socket } from 'socket.io-client';
 import { fromEvent, Observable, Subject, map, share, filter } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { Task, TaskEventPayload} from '../types/task.types';
+import { APP_CONSTANTS } from '../constants/app.constants';
 
 export interface LockAcquireAck {
   ok: boolean;
@@ -43,11 +44,9 @@ export class RealtimeService implements OnDestroy {
   readonly taskLocked$:   Observable<{ taskId: string; owner: string }>;
   readonly taskUnlocked$: Observable<{ taskId: string }>;
 
-  private static readonly ACK_TIMEOUT_MS = 5000;
-
   constructor() {
     this.socket = io(environment.wsUrl, {
-      transports: ['websocket'],
+      transports: APP_CONSTANTS.WEBSOCKET.TRANSPORTS as any,
       autoConnect: true,
       withCredentials: true,
     });
@@ -78,8 +77,8 @@ export class RealtimeService implements OnDestroy {
 
   private emitWithAck<TAck extends { ok?: boolean; reason?: string }>(
       event: string,
-      payload: any,
-      timeoutMs = RealtimeService.ACK_TIMEOUT_MS
+      payload: unknown,
+      timeoutMs = APP_CONSTANTS.WEBSOCKET.ACK_TIMEOUT_MS
   ): Promise<TAck> {
     return new Promise<TAck>((resolve, reject) => {
       const to = setTimeout(() => reject(new Error(`Ack timeout for "${event}"`)), timeoutMs);

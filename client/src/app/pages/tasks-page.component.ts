@@ -8,6 +8,8 @@ import {RealtimeService} from '../services/realtime.service';
 import {UiService} from '../services/ui.service';
 import {ToastComponent} from '../components/toast/toast.component';
 import {takeUntilDestroyed} from '@angular/core/rxjs-interop';
+import { APP_CONSTANTS } from '../constants/app.constants';
+import { MESSAGES } from '../constants/messages.constants';
 
 @Component({
     selector: 'app-tasks-page',
@@ -38,13 +40,24 @@ export class TasksPageComponent implements OnInit {
     ) {
     }
 
+    readonly APP_CONSTANTS = APP_CONSTANTS;
+    readonly MESSAGES = MESSAGES;
+
     async ngOnInit() {
         this.createForm = this.fb.group({
-            title: ['', [Validators.required, Validators.minLength(1)]],
+            title: ['', [
+                Validators.required,
+                Validators.minLength(APP_CONSTANTS.VALIDATION.TASK_TITLE_MIN_LENGTH),
+                Validators.maxLength(APP_CONSTANTS.VALIDATION.TASK_TITLE_MAX_LENGTH)
+            ]],
         });
 
         this.editForm = this.fb.group({
-            title: ['', [Validators.required, Validators.minLength(1)]],
+            title: ['', [
+                Validators.required,
+                Validators.minLength(APP_CONSTANTS.VALIDATION.TASK_TITLE_MIN_LENGTH),
+                Validators.maxLength(APP_CONSTANTS.VALIDATION.TASK_TITLE_MAX_LENGTH)
+            ]],
         });
 
         this.tasks$ = this.store.tasks$;
@@ -59,7 +72,6 @@ export class TasksPageComponent implements OnInit {
                     this.resetEditForm();
                 }
                 this.store.clearAllLocksLocal();
-                this.ui.info('Realtime connection lost; edit mode cleared');
             });
     }
 
@@ -91,7 +103,7 @@ export class TasksPageComponent implements OnInit {
 
     async startEdit(task: Task) {
         if (this.isLocked(task) && !this.isLockedByMe(task)) {
-            this.ui.error('Task is locked by another editor');
+            this.ui.error(MESSAGES.ERROR.TASK_LOCKED_BY_OTHER);
             return;
         }
 
@@ -102,7 +114,7 @@ export class TasksPageComponent implements OnInit {
                 this.editingId.set(task.id);
                 this.editForm.setValue({title: task.title ?? ''});
             } else {
-                this.ui.error('Task is locked by another editor');
+                this.ui.error(MESSAGES.ERROR.TASK_LOCKED_BY_OTHER);
             }
         } finally {
             this.loadingTaskId.set(null);
@@ -134,7 +146,7 @@ export class TasksPageComponent implements OnInit {
 
     async remove(task: Task) {
         if (this.isLocked(task) && !this.isLockedByMe(task)) {
-            this.ui.error('Task is locked by another editor');
+            this.ui.error(MESSAGES.ERROR.TASK_LOCKED_BY_OTHER);
             return;
         }
         const res = await this.store.remove(task.id);
@@ -143,8 +155,6 @@ export class TasksPageComponent implements OnInit {
                 this.editingId.set(null);
                 this.resetEditForm();
             }
-        } else {
-            this.ui.error('Task is locked by another editor');
         }
     }
 

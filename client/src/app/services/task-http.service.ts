@@ -4,6 +4,7 @@ import { environment } from '../../environments/environment';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Task, ApiTask, CreateTaskDto, UpdateTaskDto } from '../types/task.types';
+import { APP_CONSTANTS } from '../constants/app.constants';
 
 function mapTask(t: ApiTask): Task {
   return {
@@ -17,7 +18,7 @@ function mapTask(t: ApiTask): Task {
 
 @Injectable({ providedIn: 'root' })
 export class TaskHttpService {
-  private readonly base = `${environment.apiBaseUrl}/tasks`;
+  private readonly base = `${environment.apiBaseUrl}${APP_CONSTANTS.API_ENDPOINTS.TASKS}`;
 
   constructor(private http: HttpClient) {}
 
