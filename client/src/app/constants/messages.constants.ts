@@ -1,0 +1,70 @@
+export const MESSAGES = {
+  SUCCESS: {
+    TASK_CREATED: 'Task created successfully',
+    TASK_UPDATED: 'Task updated successfully',
+    TASK_DELETED: 'Task deleted successfully',
+    CONNECTION_ESTABLISHED: 'Connected to server',
+  },
+
+  ERROR: {
+    TASK_CREATE_FAILED: 'Failed to create task. Please try again.',
+    TASK_UPDATE_FAILED: 'Failed to update task. Please try again.',
+    TASK_DELETE_FAILED: 'Failed to delete task. Please try again.',
+    TASK_LOAD_FAILED: 'Failed to load tasks. Please refresh the page.',
+    TASK_NOT_FOUND: 'Task not found',
+    TASK_INVALID_DATA: 'Invalid task data provided',
+    TASK_LOCKED_BY_OTHER: 'Task is locked by another editor',
+    LOCK_ACQUIRE_FAILED: 'Failed to acquire lock for editing',
+    LOCK_RELEASE_FAILED: 'Failed to release lock',
+    LOCK_RELEASE_REFUSED: 'Server refused to release lock for task',
+    LOCK_TIMEOUT: 'Lock operation timed out',
+    CONNECTION_LOST: 'Realtime connection lost; edit mode cleared',
+    CONNECTION_FAILED: 'Failed to connect to server',
+    WEBSOCKET_ERROR: 'WebSocket connection error',
+    TITLE_REQUIRED: 'Task title is required',
+    TITLE_TOO_SHORT: 'Task title must be at least 1 character',
+    TITLE_TOO_LONG: 'Task title must be less than 200 characters',
+    FORM_INVALID: 'Please fix the form errors before submitting',
+    GENERIC_ERROR: 'Something went wrong. Please try again.',
+    NETWORK_ERROR: 'Network error. Please check your connection.',
+    UNAUTHORIZED: 'You are not authorized to perform this action',
+    SERVER_ERROR: 'Server error. Please try again later.',
+  },
+
+  INFO: {
+    CONNECTING: 'Connecting to server...',
+    LOADING_TASKS: 'Loading tasks...',
+    NO_TASKS: 'No tasks yet. Create your first task above!',
+    EDITING_TASK: 'Editing task...',
+    SAVING_CHANGES: 'Saving changes...',
+  },
+
+  WARNING: {
+    UNSAVED_CHANGES: 'You have unsaved changes. Are you sure you want to leave?',
+    DELETE_CONFIRMATION: 'Are you sure you want to delete this task?',
+    CONNECTION_UNSTABLE: 'Connection is unstable. Changes may not be saved.',
+  },
+
+  LOADING: {
+    ADDING: 'Adding...',
+    SAVING: 'Saving...',
+    DELETING: 'Deleting...',
+    LOADING: 'Loading...',
+    CONNECTING: 'Connecting...',
+  },
+
+  A11Y: {
+    TASK_LIST: 'List of tasks',
+    TASK_ITEM: 'Task item',
+    ADD_TASK: 'Add new task',
+    EDIT_TASK: 'Edit task',
+    DELETE_TASK: 'Delete task',
+    SAVE_TASK: 'Save changes to task',
+    CANCEL_EDIT: 'Cancel editing',
+    LOCKED_BY_YOU: 'Locked by you',
+    LOCKED_BY_OTHER: 'Locked by another user',
+    CLOSE_NOTIFICATION: 'Close notification',
+    TASK_TITLE_INPUT: 'Enter task title',
+    CLIENT_ID: 'Your client identifier',
+  },
+} as const;

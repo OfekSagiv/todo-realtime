@@ -7,8 +7,17 @@
     </p>
 
     <form class="create-row" [formGroup]="createForm" (ngSubmit)="create()">
-        <input formControlName="title" placeholder="New task title"/>
-        <button type="submit" [disabled]="createForm.invalid">Add</button>
+        <input
+            formControlName="title"
+            placeholder="New task title"
+            [attr.maxlength]="APP_CONSTANTS.VALIDATION.TASK_TITLE_MAX_LENGTH"
+        />
+        <button
+            type="submit"
+            [disabled]="createForm.invalid || isCreating()"
+        >
+            {{ isCreating() ? MESSAGES.LOADING.ADDING : 'Add' }}
+        </button>
     </form>
 
     <ul class="list">
@@ -17,7 +26,11 @@
                 <div class="title-area">
                     <ng-container *ngIf="editingId() === t.id; else readMode">
                         <form [formGroup]="editForm">
-                            <input class="edit-input" formControlName="title"/>
+                            <input
+                                class="edit-input"
+                                formControlName="title"
+                                [attr.maxlength]="APP_CONSTANTS.VALIDATION.TASK_TITLE_MAX_LENGTH"
+                            />
                         </form>
                     </ng-container>
                     <ng-template #readMode>
@@ -30,18 +43,30 @@
 
                 <div class="actions">
                     <ng-container *ngIf="editingId() === t.id; else normalActions">
-                        <button class="primary" (click)="saveEdit(t)" [disabled]="editForm.invalid">Save</button>
+                        <button
+                            class="primary"
+                            (click)="saveEdit(t)"
+                            [disabled]="editForm.invalid || isUpdating()"
+                        >
+                            {{ isUpdating() ? MESSAGES.LOADING.SAVING : 'Save' }}
+                        </button>
                         <button type="button" (click)="cancelEdit()">Cancel</button>
                     </ng-container>
 
                     <ng-template #normalActions>
-                        <button type="button" (click)="startEdit(t)">Edit</button>
+                        <button
+                            type="button"
+                            (click)="startEdit(t)"
+                            [disabled]="loadingTaskId() === t.id"
+                        >
+                            {{ loadingTaskId() === t.id ? MESSAGES.LOADING.LOADING : 'Edit' }}
+                        </button>
                         <button type="button" class="danger" (click)="remove(t)">Delete</button>
                     </ng-template>
                 </div>
             </div>
         </li>
 
-        <li *ngIf="!(tasks$ | async)?.length" class="empty">No tasks yet.</li>
+        <li *ngIf="!(tasks$ | async)?.length" class="empty">{{ MESSAGES.INFO.NO_TASKS }}</li>
     </ul>
 </div>

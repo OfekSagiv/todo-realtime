@@ -3,20 +3,33 @@ import { CommonModule } from '@angular/common';
 import { UiService, UiToast } from '../../services/ui.service';
 import { Subscription, timer } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { APP_CONSTANTS } from '../../constants/app.constants';
 
 @Component({
   selector: 'app-toast',
   standalone: true,
   imports: [CommonModule],
-    template: `
+  template: `
     <div class="toast-wrap" *ngIf="current as t">
      <div class="toast" [class.error]="t.kind==='error'">{{ t.text }}</div>
-  </div>
+    </div>
   `,
   styles: [`
-    .toast-wrap { position: fixed; top: 16px; right: 16px; z-index: 9999; }
-    .toast { padding: 10px 14px; border-radius: 6px; background:#333; color:#fff; font-size:14px; box-shadow:0 2px 8px rgba(0,0,0,.2); }
-    .toast.error { background:#b00020; }
+    .toast-wrap {
+      position: fixed;
+      top: var(--spacing-lg, 16px);
+      right: var(--spacing-lg, 16px);
+      z-index: 9999;
+    }
+    .toast {
+      padding: var(--spacing-sm, 10px) var(--spacing-md, 14px);
+      border-radius: var(--radius-sm, 6px);
+      background: #333;
+      color: #fff;
+      font-size: var(--text-sm, 14px);
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    }
+    .toast.error { background: #b00020; }
   `]
 })
 export class ToastComponent {
@@ -30,7 +43,10 @@ export class ToastComponent {
       .subscribe(t => {
         this.current = t;
         this.killer?.unsubscribe();
-        this.killer = timer(t.ttlMs ?? 3500).subscribe(() => this.current = null);
+        const duration = t.kind === 'error'
+          ? APP_CONSTANTS.UI.TOAST_ERROR_DURATION_MS
+          : (t.ttlMs ?? APP_CONSTANTS.UI.TOAST_DEFAULT_DURATION_MS);
+        this.killer = timer(duration).subscribe(() => this.current = null);
       });
   }
 }

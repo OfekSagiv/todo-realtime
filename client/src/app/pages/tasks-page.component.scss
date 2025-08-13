@@ -13,6 +13,22 @@
 .create-row input {
   flex: 1;
   padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.create-row button {
+  padding: 8px 16px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.create-row button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .list {
@@ -54,6 +70,8 @@
 .edit-input {
   padding: 6px 8px;
   min-width: 260px;
+  border: 1px solid #007bff;
+  border-radius: 4px;
 }
 
 .actions {
@@ -62,17 +80,17 @@
 }
 
 button {
-  padding: 6px 10px;
-  border-radius: 6px;
+  padding: 6px 12px;
+  border-radius: 4px;
   border: 1px solid #ddd;
   background: #f7f7f7;
   cursor: pointer;
 }
 
 button.primary {
-  background: #0d6efd;
+  background: #007bff;
   color: #fff;
-  border-color: #0d6efd;
+  border-color: #007bff;
 }
 
 button.danger {
@@ -87,18 +105,22 @@ button:disabled {
 }
 
 .badge {
-  font-size: 12px;
+  font-size: 11px;
   padding: 2px 6px;
-  border-radius: 999px;
-  background: #eee;
+  border-radius: 12px;
+  background: #e9ecef;
+  font-weight: 600;
+  text-transform: uppercase;
 }
 
 .badge.lock {
-  background: #ffd166;
+  background: #fff3cd;
+  color: #856404;
 }
 
 .badge.me {
-  background: #a8dadc;
+  background: #d1ecf1;
+  color: #0c5460;
 }
 
 .empty {

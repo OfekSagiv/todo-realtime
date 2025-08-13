@@ -7,6 +7,8 @@ import { RealtimeService, LockAcquireAck } from '../services/realtime.service';
 import { UiService } from '../services/ui.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { TaskOperationError } from '../types/errors';
+import { APP_CONSTANTS } from '../constants/app.constants';
+import { MESSAGES } from '../constants/messages.constants';
 
 @Injectable({ providedIn: 'root' })
 export class TaskStore implements OnDestroy {
@@ -43,7 +45,10 @@ export class TaskStore implements OnDestroy {
 
     this.rt.disconnected$
       .pipe(takeUntil(this.destroyed$))
-      .subscribe(() => this.clearAllLocksLocal());
+      .subscribe(() => {
+        this.clearAllLocksLocal();
+        this.ui.info(MESSAGES.ERROR.CONNECTION_LOST);
+      });
   }
 
   async loadAll(): Promise<void> {
@@ -51,7 +56,9 @@ export class TaskStore implements OnDestroy {
       const list = await firstValueFrom(this.http.getAll());
       this._tasks$.next(list);
     } catch (error) {
-      console.error('[TaskStore] Failed to load tasks:', error);
+      const taskError = new TaskOperationError('load', null, error);
+      console.error('[TaskStore]', taskError);
+      this.ui.error(MESSAGES.ERROR.TASK_LOAD_FAILED);
     }
   }
 
@@ -59,12 +66,12 @@ export class TaskStore implements OnDestroy {
     try {
       const created = await firstValueFrom(this.http.create(dto));
       this.upsertTask(created);
-      this.ui.info('Task created successfully');
+      this.ui.info(MESSAGES.SUCCESS.TASK_CREATED);
       return created;
     } catch (error) {
       const taskError = new TaskOperationError('create', null, error);
       console.error('[TaskStore]', taskError);
-      this.ui.error('Failed to create task. Please try again.');
+      this.ui.error(MESSAGES.ERROR.TASK_CREATE_FAILED);
       return null;
     }
   }
@@ -74,27 +81,27 @@ export class TaskStore implements OnDestroy {
       const token = this.locks.get(id)?.token;
       const updated = await firstValueFrom(this.http.update(id, dto, token));
       this.upsertTask(updated);
-      this.ui.info('Task updated successfully');
+      this.ui.info(MESSAGES.SUCCESS.TASK_UPDATED);
       return updated;
     } catch (error) {
       if (error instanceof HttpErrorResponse) {
         switch (error.status) {
-          case 423:
-            this.ui.error('Task is locked by another editor');
+          case APP_CONSTANTS.HTTP_STATUS.LOCKED:
+            this.ui.error(MESSAGES.ERROR.TASK_LOCKED_BY_OTHER);
             return null;
-          case 404:
-            this.ui.error('Task not found');
+          case APP_CONSTANTS.HTTP_STATUS.NOT_FOUND:
+            this.ui.error(MESSAGES.ERROR.TASK_NOT_FOUND);
             this.removeLocal(id);
             return null;
-          case 422:
-            this.ui.error('Invalid task data provided');
+          case APP_CONSTANTS.HTTP_STATUS.UNPROCESSABLE_ENTITY:
+            this.ui.error(MESSAGES.ERROR.TASK_INVALID_DATA);
             return null;
         }
       }
 
       const taskError = new TaskOperationError('update', id, error);
       console.error('[TaskStore]', taskError);
-      this.ui.error('Failed to update task. Please try again.');
+      this.ui.error(MESSAGES.ERROR.TASK_UPDATE_FAILED);
       return null;
     }
   }
@@ -104,13 +111,16 @@ export class TaskStore implements OnDestroy {
       const token = this.locks.get(id)?.token;
       const res = await firstValueFrom(this.http.delete(id, token));
       this.removeLocal(id);
+      this.ui.info(MESSAGES.SUCCESS.TASK_DELETED);
       return res;
     } catch (error) {
-      if (error instanceof HttpErrorResponse && error.status === 423) {
-        this.ui.error('Task is locked by another editor');
+      if (error instanceof HttpErrorResponse && error.status === APP_CONSTANTS.HTTP_STATUS.LOCKED) {
+        this.ui.error(MESSAGES.ERROR.TASK_LOCKED_BY_OTHER);
         return null;
       }
-      console.error(`[TaskStore] Failed to delete task ${id}:`, error);
+      const taskError = new TaskOperationError('delete', id, error);
+      console.error('[TaskStore]', taskError);
+      this.ui.error(MESSAGES.ERROR.TASK_DELETE_FAILED);
       return null;
     }
   }
@@ -120,30 +130,45 @@ export class TaskStore implements OnDestroy {
       const ack = await this.rt.acquireLock(taskId);
       if (ack?.ok && ack.lock) {
         this.setLock(taskId, { owner: ack.lock.owner, token: ack.lock.token });
+      } else {
+        this.ui.error(MESSAGES.ERROR.TASK_LOCKED_BY_OTHER);
       }
       return ack;
     } catch (error) {
-      console.error(`[TaskStore] Failed to acquire lock for task ${taskId}:`, error);
+      const taskError = new TaskOperationError('lock', taskId, error);
+      console.error('[TaskStore]', taskError);
+      this.ui.error(MESSAGES.ERROR.LOCK_ACQUIRE_FAILED);
       return null;
     }
+  }
+
+  private isSuccessfulLockRelease(res: unknown): boolean {
+    if (typeof res !== 'object' || res === null) {
+      return false;
+    }
+
+    const response = res as Record<string, unknown>;
+    const hasOkProperty = 'ok' in response && Boolean(response['ok']);
+    const hasValidStatus =
+      'status' in response &&
+      APP_CONSTANTS.LOCK_SUCCESS_STATUSES.includes(Number(response['status']) as any);
+
+    return hasOkProperty || hasValidStatus;
   }
 
   async releaseLock(taskId: string): Promise<void> {
     try {
       const token = this.locks.get(taskId)?.token;
       const res = await this.rt.releaseLock(taskId, token);
-      const ok =
-        typeof res === 'object' &&
-        res !== null &&
-        (('ok' in (res as any) && Boolean((res as any).ok)) ||
-          ('status' in (res as any) && [200, 204, 404, 409].includes(Number((res as any).status))));
-      if (ok) {
+
+      if (this.isSuccessfulLockRelease(res)) {
         this.clearLock(taskId);
       } else {
-        console.error(`[TaskStore] Server refused to release lock for task ${taskId}; keeping local lock.`);
+        console.error(`[TaskStore] ${MESSAGES.ERROR.LOCK_RELEASE_REFUSED} ${taskId}; keeping local lock.`);
       }
     } catch (error) {
-      console.error(`[TaskStore] Failed to release lock for task ${taskId}; keeping local lock.`, error);
+      const taskError = new TaskOperationError('unlock', taskId, error);
+      console.error('[TaskStore]', taskError);
     }
   }
 
