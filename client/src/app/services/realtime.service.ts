@@ -24,6 +24,16 @@ export interface LockReleaseAck {
   reason?: string;
 }
 
+function normalizeTask(raw: any): TaskDto {
+  return {
+    id: raw?.id ?? raw?._id,
+    title: raw?.title ?? '',
+    completed: Boolean(raw?.completed),
+    createdAt: raw?.createdAt ?? '',
+    updatedAt: raw?.updatedAt ?? '',
+  };
+}
+
 @Injectable({ providedIn: 'root' })
 export class RealtimeService implements OnDestroy {
   private socket: Socket;
@@ -50,11 +60,11 @@ export class RealtimeService implements OnDestroy {
     this.connected$    = fromEvent(this.socket, 'connect').pipe(map(() => true), share());
     this.disconnected$ = fromEvent(this.socket, 'disconnect').pipe(share());
 
-    this.taskCreated$  = fromEvent<TaskDto>(this.socket, 'task:created').pipe(share());
-    this.taskUpdated$  = fromEvent<TaskDto>(this.socket, 'task:updated').pipe(share());
-    this.taskDeleted$  = fromEvent<{ id: string }>(this.socket, 'task:deleted').pipe(share());
-    this.taskLocked$   = fromEvent<{ taskId: string; owner: string }>(this.socket, 'task:locked').pipe(share());
-    this.taskUnlocked$ = fromEvent<{ taskId: string }>(this.socket, 'task:unlocked').pipe(share());
+    this.taskCreated$  = fromEvent(this.socket, 'task:created').pipe(map(normalizeTask), share()) as Observable<TaskDto>;
+    this.taskUpdated$  = fromEvent(this.socket, 'task:updated').pipe(map(normalizeTask), share()) as Observable<TaskDto>;
+    this.taskDeleted$  = fromEvent(this.socket, 'task:deleted').pipe(share()) as Observable<{ id: string }>;
+    this.taskLocked$   = fromEvent(this.socket, 'task:locked').pipe(share())  as Observable<{ taskId: string; owner: string }>;
+    this.taskUnlocked$ = fromEvent(this.socket, 'task:unlocked').pipe(share()) as Observable<{ taskId: string }>;
   }
 
   getSocketId(): string | undefined {
@@ -62,9 +72,9 @@ export class RealtimeService implements OnDestroy {
   }
 
   private emitWithAck<TAck extends { ok?: boolean; reason?: string }>(
-    event: string,
-    payload: any,
-    timeoutMs = RealtimeService.ACK_TIMEOUT_MS
+      event: string,
+      payload: any,
+      timeoutMs = RealtimeService.ACK_TIMEOUT_MS
   ): Promise<TAck> {
     return new Promise<TAck>((resolve, reject) => {
       const to = setTimeout(() => reject(new Error(`Ack timeout for "${event}"`)), timeoutMs);
