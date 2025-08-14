@@ -10,6 +10,7 @@ router.get('/:id', validateObjectId, controller.getTaskByIdController);
 
 router.post('/', validateBody(createTaskSchema), controller.createTaskController);
 router.put('/:id', validateObjectId, verifyTaskLock, validateBody(updateTaskSchema), controller.updateTaskController);
+router.patch('/:id/toggle-status', validateObjectId, controller.toggleTaskStatusController);
 
 router.delete('/:id', validateObjectId, verifyTaskLock, controller.deleteTaskController);
 

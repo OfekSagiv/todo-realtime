@@ -1,6 +1,7 @@
 const { Server } = require('socket.io');
 const { socketCorsOptions } = require('../config/cors');
 const { registerLockHandlers } = require('./handlers/lock.handlers');
+const { registerTaskHandlers } = require('./handlers/task.handlers');
 const {ERROR_MESSAGES} = require("../constants/error");
 const {WS_DISCONNECTED, WS_CONNECTED, SOCKET_CONNECT, SOCKET_DISCONNECT} = require("../constants/socketEvents");
 
@@ -13,6 +14,7 @@ function initSocket(httpServer) {
         console.log(WS_CONNECTED, socket.id);
 
         registerLockHandlers(io, socket);
+        registerTaskHandlers(io, socket);
 
         socket.on(SOCKET_DISCONNECT, () => {
             console.log(WS_DISCONNECTED, socket.id);

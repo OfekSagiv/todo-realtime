@@ -27,10 +27,16 @@ const deleteTaskController = asyncHandler(async (req, res) => {
     res.status(StatusCodes.OK).json({ id });
 });
 
+const toggleTaskStatusController = asyncHandler(async (req, res) => {
+    const task = await service.toggleTaskStatusService(req.params.id);
+    res.status(StatusCodes.OK).json(task);
+});
+
 module.exports = {
     getAllTasksController,
     getTaskByIdController,
     createTaskController,
     updateTaskController,
     deleteTaskController,
+    toggleTaskStatusController,
 };
