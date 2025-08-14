@@ -201,3 +201,13 @@ The architecture supports comprehensive testing:
 - Database schema changes are isolated within the repository layer
 
 This architecture provides a solid foundation for a collaborative task management system while maintaining flexibility for future growth and feature additions.
+
+## 📸 Screenshots & Demo
+
+### Swagger API Documentation
+![Swagger UI Documentation](media/swagger-photo.png)
+
+### Application Demo
+![Todo Realtime Demo](media/Screen-Recording-demo.mp4)
+
+*The demo shows real-time synchronization between multiple clients and the task locking mechanism in action.*
