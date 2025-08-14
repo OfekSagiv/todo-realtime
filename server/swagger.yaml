@@ -1,0 +1,291 @@
+openapi: 3.0.3
+info:
+  title: Todo Realtime API
+  description: A real-time todo application API with task management and locking capabilities
+  version: 1.0.0
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+
+tags:
+  - name: Tasks
+    description: Task management operations
+
+paths:
+  /tasks:
+    get:
+      tags:
+        - Tasks
+      summary: Get all tasks
+      description: Retrieve a list of all tasks
+      operationId: getAllTasks
+      responses:
+        '200':
+          description: Successfully retrieved all tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Tasks
+      summary: Create a new task
+      description: Create a new task with the provided title
+      operationId: createTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskRequest'
+      responses:
+        '201':
+          description: Task created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /tasks/{id}:
+    get:
+      tags:
+        - Tasks
+      summary: Get task by ID
+      description: Retrieve a specific task by its ID
+      operationId: getTaskById
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: Task retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/InvalidIdError'
+        '404':
+          $ref: '#/components/responses/TaskNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      tags:
+        - Tasks
+      summary: Update task
+      description: Update a task's title and/or completion status. Requires task lock.
+      operationId: updateTask
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+        - $ref: '#/components/parameters/LockToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTaskRequest'
+      responses:
+        '200':
+          description: Task updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/TaskNotFound'
+        '423':
+          $ref: '#/components/responses/TaskLocked'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Tasks
+      summary: Delete task
+      description: Delete a task by its ID. Requires task lock.
+      operationId: deleteTask
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+        - $ref: '#/components/parameters/LockToken'
+      responses:
+        '200':
+          description: Task deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: The ID of the deleted task
+        '400':
+          $ref: '#/components/responses/InvalidIdError'
+        '404':
+          $ref: '#/components/responses/TaskNotFound'
+        '423':
+          $ref: '#/components/responses/TaskLocked'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /tasks/{id}/toggle-status:
+    patch:
+      tags:
+        - Tasks
+      summary: Toggle task completion status
+      description: Toggle the completion status of a task
+      operationId: toggleTaskStatus
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: Task status toggled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/InvalidIdError'
+        '404':
+          $ref: '#/components/responses/TaskNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  schemas:
+    Task:
+      type: object
+      required:
+        - _id
+        - title
+        - completed
+        - createdAt
+        - updatedAt
+      properties:
+        _id:
+          type: string
+          format: objectid
+          description: Unique identifier for the task
+        title:
+          type: string
+          description: The task title
+          minLength: 1
+        completed:
+          type: boolean
+          description: Whether the task is completed
+          default: false
+        createdAt:
+          type: string
+          format: date-time
+          description: Task creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Task last update timestamp
+
+    CreateTaskRequest:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          description: The task title
+          minLength: 1
+
+    UpdateTaskRequest:
+      type: object
+      minProperties: 1
+      properties:
+        title:
+          type: string
+          description: The updated task title
+          minLength: 1
+        completed:
+          type: boolean
+          description: The updated completion status
+
+    Error:
+      type: object
+      required:
+        - error
+        - message
+        - status
+      properties:
+        error:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Human-readable error message
+        status:
+          type: integer
+          description: HTTP status code
+
+  parameters:
+    TaskId:
+      name: id
+      in: path
+      required: true
+      description: The task ID
+      schema:
+        type: string
+        format: objectid
+        pattern: '^[0-9a-fA-F]{24}$'
+
+    LockToken:
+      name: x-lock-token
+      in: header
+      required: true
+      description: Task lock token obtained via Socket.IO
+      schema:
+        type: string
+
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    InvalidIdError:
+      description: Invalid ID format
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    TaskNotFound:
+      description: Task not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    TaskLocked:
+      description: Task is locked by another user
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
