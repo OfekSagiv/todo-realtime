@@ -112,7 +112,16 @@
 
         <ng-template #readMode>
           <div class="task-header">
-            <div class="task-content">
+            <div class="task-checkbox-container">
+              <mat-checkbox
+                [checked]="task.completed"
+                (change)="toggleTaskStatus(task)"
+                [disabled]="isLocked(task) && !isLockedByMe(task)"
+                color="primary"
+                matTooltip="Mark as {{ task.completed ? 'incomplete' : 'complete' }}"
+              ></mat-checkbox>
+            </div>
+            <div class="task-content" [class.completed]="task.completed">
               <h3 class="task-title">{{ task.title }}</h3>
               <div class="task-meta">
                 <span class="meta-item">
@@ -128,6 +137,10 @@
 
             <div class="task-status">
               <mat-chip-set>
+                <mat-chip *ngIf="task.completed" color="accent">
+                  <mat-icon matChipAvatar>check_circle</mat-icon>
+                  Completed
+                </mat-chip>
                 <mat-chip *ngIf="isLockedByMe(task)" color="primary">
                   <mat-icon matChipAvatar>person</mat-icon>
                   You

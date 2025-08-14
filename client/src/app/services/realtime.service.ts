@@ -100,6 +100,10 @@ export class RealtimeService implements OnDestroy {
     return this.emitWithAck<LockReleaseAck>('lock:release', { taskId, token });
   }
 
+  toggleTaskStatus(taskId: string): Promise<{ ok: boolean; task?: Task; error?: string }> {
+    return this.emitWithAck<{ ok: boolean; task?: Task; error?: string }>('task:toggle-status', { taskId });
+  }
+
   ngOnDestroy(): void {
     this.destroyed$.next();
     this.destroyed$.complete();

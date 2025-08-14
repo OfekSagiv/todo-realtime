@@ -125,6 +125,24 @@ export class TaskStore implements OnDestroy {
     }
   }
 
+  async toggleStatus(id: string): Promise<Task | null> {
+    try {
+      const updated = await firstValueFrom(this.http.toggleStatus(id));
+      this.upsertTask(updated);
+      return updated;
+    } catch (error) {
+      if (error instanceof HttpErrorResponse && error.status === APP_CONSTANTS.HTTP_STATUS.NOT_FOUND) {
+        this.ui.error(MESSAGES.ERROR.TASK_NOT_FOUND);
+        this.removeLocal(id);
+        return null;
+      }
+      const taskError = new TaskOperationError('toggle', id, error);
+      console.error('[TaskStore]', taskError);
+      this.ui.error(MESSAGES.ERROR.TASK_UPDATE_FAILED);
+      return null;
+    }
+  }
+
   async acquireLock(taskId: string): Promise<LockAcquireAck | null> {
     try {
       const ack = await this.rt.acquireLock(taskId);

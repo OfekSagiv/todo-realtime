@@ -43,4 +43,8 @@ export class TaskHttpService {
     const headers = lockToken ? new HttpHeaders({ 'X-Lock-Token': lockToken }) : undefined;
     return this.http.delete<{ id: string }>(`${this.base}/${id}`, { headers });
   }
+
+  toggleStatus(id: string): Observable<Task> {
+    return this.http.patch<ApiTask>(`${this.base}/${id}/toggle-status`, {}).pipe(map(mapTask));
+  }
 }
