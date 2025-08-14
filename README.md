@@ -2,7 +2,7 @@
 
 ## Project Description
 A real-time To-Do application built with **Angular** for the frontend and **Express.js** for the backend.  
-The current setup is the base monorepo structure — next steps will include MongoDB integration, Socket.IO, and CRUD features.
+The current setup is the base monorepo structure - next steps will include MongoDB integration, Socket.IO, and CRUD features.
 
 ## Technologies
 - **Frontend:** Angular 20
@@ -23,7 +23,7 @@ project-root/
 ```
 
 ## Prerequisites
-- Node.js v18 or higher
+- Node.js v22.18 or higher
 - MongoDB (local or cloud instance)
 
 ## Running the Project
@@ -42,7 +42,7 @@ project-root/
    ```
 
 2. **Environment Configuration**
-   Create `.env` file in server directory (follow the `.env.example` template):
+   Create `.env` file **in server directory** (follow the `.env.example` template):
 
 3. **Start the Application**
    ```bash
@@ -52,17 +52,31 @@ project-root/
 
    # Terminal 2 - Start the client
    cd client
-   npm start
+   ng serve
    ```
 
 4. **Access the Application**
    - Frontend: http://localhost:4200
    - Backend API: http://localhost:3000
 
+##  API Documentation
+
+**Interactive API Documentation**: [http://localhost:3000/api-docs](http://localhost:3000/api-docs)
+
+The project includes comprehensive Swagger UI documentation with:
+- **REST endpoints** for task management (GET, POST, PUT, DELETE, PATCH)
+- **Interactive testing** - Try endpoints directly from the browser
+- **Request/Response examples** with real data schemas
+- **Task locking documentation** - Required for PUT/DELETE operations via Socket.IO
+
+Access the documentation while the server is running to test the API interactively.
+
+
+
 ## Architecture Documentation
 
 ### Design Philosophy
-This application follows modern software engineering principles emphasizing maintainability, scalability, and real-time collaboration. The architecture implements SOLID principles with clear separation of concerns across all layers.
+This application follows software engineering principles emphasizing maintainability, scalability, and real-time collaboration. The architecture implements SOLID principles with clear separation of concerns across all layers.
 
 ### System Architecture Overview
 ```
@@ -100,7 +114,6 @@ The application uses a hybrid state management approach:
 - **Centralized Store** for application-wide state management
 
 **Service Layer Organization**
-- **Form Services**: Handle validation, form state, and user input processing
 - **UI State Services**: Manage loading states, editing modes, and view states
 - **HTTP Services**: Handle REST API communication with proper error handling
 - **Realtime Services**: Manage WebSocket connections and real-time events
@@ -140,20 +153,12 @@ Implements optimistic locking to handle concurrent edits:
 
 ### Key Design Decisions
 
-**Type Safety Throughout**
-Comprehensive TypeScript implementation ensures type safety from frontend to backend. All interfaces, API contracts, and data structures are strictly typed, reducing runtime errors and improving developer experience.
 
 **Error Handling Strategy**
 Centralized error management with custom error types provides consistent error reporting across the application. Different error categories are handled appropriately with meaningful user feedback.
 
 **Configuration Management**
 Application constants and configuration values are centralized and type-safe, making it easy to modify settings without hunting through multiple files.
-
-**Performance Considerations**
-- OnPush change detection strategy minimizes unnecessary re-renders
-- Connection pooling optimizes database performance
-- Event batching reduces real-time communication overhead
-- Proper cleanup prevents memory leaks in long-running sessions
 
 ### Scalability Considerations
 
@@ -192,9 +197,6 @@ The architecture supports comprehensive testing:
 
 **Code Quality Standards**
 - Clear separation of concerns makes debugging straightforward
-
-**Future Enhancement Support**
-The modular architecture facilitates future enhancements:
 - UI components can be easily extended or replaced
 - Database schema changes are isolated within the repository layer
 
