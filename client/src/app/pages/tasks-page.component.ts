@@ -10,6 +10,7 @@ import {MatChipsModule} from '@angular/material/chips';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatDividerModule} from '@angular/material/divider';
 import {MatTooltipModule} from '@angular/material/tooltip';
+import {MatCheckboxModule} from '@angular/material/checkbox';
 import {TaskStore} from '../store/task.store';
 import {Task} from '../types/task.types';
 import {Observable} from 'rxjs';
@@ -35,7 +36,8 @@ import { MESSAGES } from '../constants/messages.constants';
         MatChipsModule,
         MatProgressSpinnerModule,
         MatDividerModule,
-        MatTooltipModule
+        MatTooltipModule,
+        MatCheckboxModule
     ],
     templateUrl: './tasks-page.component.html',
     styleUrls: ['./tasks-page.component.scss'],
@@ -178,6 +180,10 @@ export class TasksPageComponent implements OnInit {
                 this.resetEditForm();
             }
         }
+    }
+
+    async toggleTaskStatus(task: Task) {
+        await this.store.toggleStatus(task.id);
     }
 
     trackById(_index: number, task: Task): string {
