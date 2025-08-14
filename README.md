@@ -208,6 +208,6 @@ This architecture provides a solid foundation for a collaborative task managemen
 ![Swagger UI Documentation](media/swagger-photo.png)
 
 ### Application Demo
-![Todo Realtime Demo](media/Screen-Recording-demo.mp4)
+![Todo Realtime Demo](https://www.youtube.com/watch?v=d5QCUQh4k_8)
 
 *The demo shows real-time synchronization between multiple clients and the task locking mechanism in action.*
