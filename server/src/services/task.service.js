@@ -58,10 +58,26 @@ async function deleteTaskService(id) {
     return {id: deletedId};
 }
 
+async function toggleTaskStatusService(id) {
+    const task = await repo.findTaskById(id);
+    if (!task) {
+        throw new AppError(
+            StatusCodes.NOT_FOUND,
+            ERROR_MESSAGES.TASK_NOT_FOUND,
+            ERROR_CODES.TASK_NOT_FOUND
+        );
+    }
+
+    const updated = await repo.updateTaskById(id, { completed: !task.completed });
+    publishTaskUpdated(updated);
+    return updated;
+}
+
 module.exports = {
     getAllTasksService,
     getTaskByIdService,
     createTaskService,
     updateTaskService,
     deleteTaskService,
+    toggleTaskStatusService,
 };

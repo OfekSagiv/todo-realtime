@@ -4,6 +4,7 @@ module.exports = {
     TASK_DELETED: 'task:deleted',
     TASK_LOCKED:   'task:locked',
     TASK_UNLOCKED: 'task:unlocked',
+    TASK_TOGGLE_STATUS: 'task:toggle-status',
 
     LOCK_ACQUIRE:  'lock:acquire',
     LOCK_RELEASE:  'lock:release',
@@ -13,5 +14,4 @@ module.exports = {
 
     SOCKET_CONNECT: 'connection',
     SOCKET_DISCONNECT: 'disconnect',
-
 };
